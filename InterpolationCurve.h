@@ -1,6 +1,5 @@
-#pragma once
-#ifndef __INTERPOLATIONCURVE__
-#define __INTERPOLATIONCURVE__
+#ifndef __INTERPOLATIONCURVE_H__
+#define __INTERPOLATIONCURVE_H__
 
 #include <assert.h>
 #include <vector>
@@ -183,4 +182,4 @@ private:
     //static bool _init;    
 };
 
-#endif // !__INTERPOLATIONCURVE__
+#endif // !__INTERPOLATIONCURVE_H__
