@@ -1,4 +1,3 @@
-#pragma once
 #ifndef __EQUATIONSOLVER__
 #define __EQUATIONSOLVER__
 
