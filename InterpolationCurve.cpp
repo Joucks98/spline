@@ -1,68 +1,58 @@
+#define _SCL_SECURE_NO_WARNINGS
 #include <Windows.h>
 #include <gl/GLU.h>
+#include <Eigen/Dense>
+#include <iterator>
+#include <numeric> // std::inner_product
+#include <functional> // std::plus<>
 #include "NurbsBase.h"
 #include "InterpolationCurve.h"
 #include "GeometryCalc.h"
-#include <Eigen/Dense>
-#include <iterator>
-#define EPS 1e-6
+
+#define EPS 1e-12
+
 using namespace Eigen;
 using namespace Interpolation;
 
-InterpolationCurve::stlDVec InterpolationCurve::uniformVec;
-bool InterpolationCurve::_init = InterpolationCurve::init();
+//InterpolationCurve::stlDVec InterpolationCurve::uniformVec;
+//bool InterpolationCurve::_init = InterpolationCurve::init(1000);
 
 double Interpolation::norm2(const double v[], int dim)
 {
     if (v == nullptr)
         return -1;
-    double tmp = 0.0;
-    for (int i = 0; i < dim; ++i)
-    {
-        tmp += v[i] * v[i];
-    }
-    return sqrt(tmp);
+    return sqrt(std::inner_product(v, v+dim, v, 0.0));
 }
 
-double Interpolation::twoPointDist(const double p1[], const double p2[], int dim)
-{
-    if (p1 == nullptr || p2 == nullptr)
-        return -1;
-    std::vector<double> d(dim);
-    for (int i = 0; i < dim; ++i)
-    {
-        d[i] = p1[i] - p2[i];
-    }
-    return norm2(&d[0], dim);
-}
-void InterpolationCurve::setDerivEnd(bool setFlag, const std::vector<double>* derVec)
+
+void InterpolationCurve::setDerivEnd(bool setFlag, const stlDVec* derVec)
 {
     derivateIsSet = setFlag;
     if (!derivateIsSet)
         return;
 
-    if (!endDerVec.empty())
-        endDerVec.clear();
+    if (!m_endDerVec.empty())
+        m_endDerVec.clear();
     if (derVec == nullptr)
     {
-        stlDVec D0(dimension), DN(dimension);
-        for (int k = 0; k < dimension; ++k)
+        stlDVec D0(m_dimension), DN(m_dimension);
+        for (int k = 0; k < m_dimension; ++k)
         {
-            D0[k] = interPointCoordVec[dimension + k] - interPointCoordVec[k];
-            DN[k] = interPointCoordVec[interPointCoordVec.size() - dimension + k] -
-                interPointCoordVec[interPointCoordVec.size() - 2 * dimension + k];
+            D0[k] = m_interPointCoordVec[m_dimension + k] - m_interPointCoordVec[k];
+            DN[k] = m_interPointCoordVec[m_interPointCoordVec.size() - m_dimension + k] -
+                m_interPointCoordVec[m_interPointCoordVec.size() - 2 * m_dimension + k];
         }
-        double length = getPolyLineLen();
+        double length = chordPolyLineLength();
         if (closeState)
         {
-            for (int k = 0; k < dimension; ++k)
+            for (int k = 0; k < m_dimension; ++k)
             {
                 D0[k] += DN[k];
                 DN[k] = D0[k];
             }
-            double norm_0n = norm2(&D0[0], dimension); // ||D0+DN||
+            double norm_0n = norm2(&D0[0], m_dimension); // ||D0+DN||
             double lamda0n = .5*length / norm_0n;
-            for (int k = 0; k < dimension; ++k)
+            for (int k = 0; k < m_dimension; ++k)
             {
                 D0[k] *= lamda0n;
                 DN[k] *= lamda0n;
@@ -70,36 +60,36 @@ void InterpolationCurve::setDerivEnd(bool setFlag, const std::vector<double>* de
         }
         else
         {
-            double norm_0 = norm2(&D0[0], dimension);
-            double norm_n = norm2(&DN[0], dimension);         
+            double norm_0 = norm2(&D0[0], m_dimension);
+            double norm_n = norm2(&DN[0], m_dimension);         
             double lamda0 = length / norm_0;
             double lamdan = length / norm_n;
-            for (int k = 0; k < dimension; ++k)
+            for (int k = 0; k < m_dimension; ++k)
             {
                 D0[k] *= lamda0;
                 DN[k] *= lamdan;
             }
         }
 
-        endDerVec.resize(2 * dimension);
-        std::copy(D0.begin(), D0.end(), endDerVec.begin());
-        std::copy(DN.begin(), DN.end(), endDerVec.begin() + dimension);
+        m_endDerVec.resize(2 * m_dimension);
+        std::copy(D0.begin(), D0.end(), m_endDerVec.begin());
+        std::copy(DN.begin(), DN.end(), m_endDerVec.begin() + m_dimension);
     }
     else
     {
-        // set endDerVec by derVec
-        endDerVec.resize(derVec->size());
-        std::copy(derVec->begin(), derVec->end(), endDerVec.begin());
+        // set m_endDerVec by derVec
+        m_endDerVec.resize(derVec->size());
+        std::copy(derVec->begin(), derVec->end(), m_endDerVec.begin());
     }    
 }
 
 void InterpolationCurve::setDegree(int d)
 {
     assert(d > 0);
-    degree = d;
+    m_degree = d;
     // clear nurbs data to restart
-    controlPointCoordVec.clear();
-    knotVec.clear();
+    m_controlPointCoordVec.clear();
+    m_knotVec.clear();
     readyFlag = false;
     isAppend = true;
 }
@@ -109,21 +99,21 @@ CURVESTATE InterpolationCurve::setInterPointCoords(stlDVec && a)
     CURVESTATE flag = UNCHANGE;
     if (a.empty())
         return flag;
-    int num = (int)a.size() / dimension;
+    int num = (int)a.size() / m_dimension;
     
     for (int i = 0; i < num - 1; ++i)
     {
-        if (twoPointDist(&a[i*dimension], &a[(i + 1)*dimension], dimension) < EPS)
+        if (twoPointDist(&a[i*m_dimension], &a[(i + 1)*m_dimension], m_dimension) < EPS)
         {
             flag = CRVERROR;
             break;
         }
     }
   
-    //interPointCoordVec = std::move(a);
+    //m_interPointCoordVec = std::move(a);
     if (flag != CRVERROR)
     {
-        interPointCoordVec.swap(a);
+        m_interPointCoordVec.swap(a);
         flag = APPEND;
     }
         
@@ -132,18 +122,15 @@ CURVESTATE InterpolationCurve::setInterPointCoords(stlDVec && a)
 
 CURVESTATE InterpolationCurve::addInterPointCoords(double coord[], int num)
 {
-    if (coord == nullptr || num != dimension)
+    if (coord == nullptr || num != m_dimension)
         return CRVERROR;
-    if (!interPointCoordVec.empty())
+    if (!m_interPointCoordVec.empty())
     {
-        std::vector<double> tmp(interPointCoordVec.end() - dimension, interPointCoordVec.end());
-        if (twoPointDist(&tmp[0], coord, dimension) < EPS)
+        std::vector<double> tmp(m_interPointCoordVec.end() - m_dimension, m_interPointCoordVec.end());
+        if (twoPointDist(&tmp[0], coord, m_dimension) < EPS)
             return CRVERROR;
-    }    
-    for (int i = 0; i < dimension; ++i)
-    {
-        interPointCoordVec.push_back(coord[i]);
     }
+    m_interPointCoordVec.insert(m_interPointCoordVec.end(), &coord[0], &coord[0] + m_dimension);
     return APPEND;
 }
 
@@ -152,14 +139,14 @@ CURVESTATE InterpolationCurve::insertInterPointCoords(double coord[], int idx)
     assert(idx > 0 && idx < getInterPointNum());
     if (idx == 0) //  can not add an end point
         return UNCHANGE;
-    interPointCoordVec.insert(interPointCoordVec.begin() + idx*dimension, coord, coord + dimension);
+    m_interPointCoordVec.insert(m_interPointCoordVec.begin() + idx*m_dimension, coord, coord + m_dimension);
     return APPEND;
 }
 
 CURVESTATE InterpolationCurve::removeInterPointCoords(int idx)
 {
     assert(idx >= 0 && idx < getInterPointNum());
-    interPointCoordVec.erase(interPointCoordVec.begin() + idx*dimension, interPointCoordVec.begin() + (idx + 1)*dimension);
+    m_interPointCoordVec.erase(m_interPointCoordVec.begin() + idx*m_dimension, m_interPointCoordVec.begin() + (idx + 1)*m_dimension);
     return APPEND;
 }
 
@@ -169,12 +156,12 @@ CURVESTATE InterpolationCurve::modifyInerPointCoords(int index, const double a[]
         return CRVERROR;
     else
     {
-        for (int i = 0; i < dimension; ++i)
+        for (int i = 0; i < m_dimension; ++i)
         {            
-            interPointCoordVec[index*dimension + i] = a[i];
+            m_interPointCoordVec[index*m_dimension + i] = a[i];
             if (closeState && (index == 0 || index == getInterPointNum() - 1))
             {
-                interPointCoordVec[(getInterPointNum() - 1 )*dimension + i] = a[i];
+                m_interPointCoordVec[(getInterPointNum() - 1 )*m_dimension + i] = a[i];
             }
         }
         if (index == 0 || index == 1 ||
@@ -197,12 +184,12 @@ void InterpolationCurve::showInterPoints(int modeType)
         glDisable(GL_POINT_SMOOTH);
     }
 
-    std::vector<double> offsetPtVec(interPointCoordVec);
-    if (offsetLen != 0)
-        getOffsetPt(offsetLen, &uParam[0], (int)uParam.size(), &offsetPtVec);
+    std::vector<double> offsetPtVec(m_interPointCoordVec);
+    if (m_offsetLen != 0)
+        getOffsetPt(m_offsetLen, &m_uParam[0], (int)m_uParam.size(), &offsetPtVec);
     
     glBegin(GL_POINTS);
-    drawPoint(offsetPtVec, dimension);
+    drawPoint(offsetPtVec, m_dimension);
     glEnd();
 }
 
@@ -214,10 +201,10 @@ void InterpolationCurve::update(CURVESTATE flag)
     if (flag & APPEND)
     {
         int qNum = getInterPointNum();
-        if (qNum == 1) degree = 0;
-        else if (qNum == 2) degree = 1;
-        else if (qNum == 3) degree = 2;
-        else degree = 3;
+        if (qNum == 1) m_degree = 0;
+        else if (qNum == 2) m_degree = 1;
+        else if (qNum == 3) m_degree = 2;
+        else m_degree = 3;
     }
     
     if (((flag & APPEND) || (flag & ENDMODIFY)))
@@ -244,18 +231,18 @@ void InterpolationCurve::showControlPoints(int modeType)
     glPointSize(5.0);
     glEnable(GL_POINT_SMOOTH);
 
-    /*std::vector<double> offsetPtVec(controlPointCoordVec);
-    if (offsetLen != 0)
-        getOffsetPt(offsetLen, &uParam[0], uParam.size(), &offsetPtVec);*/
+    /*std::vector<double> offsetPtVec(m_controlPointCoordVec);
+    if (m_offsetLen != 0)
+        getOffsetPt(m_offsetLen, &m_uParam[0], m_uParam.size(), &offsetPtVec);*/
     glBegin(GL_POINTS);
-    drawPoint(controlPointCoordVec, dimension);
+    drawPoint(m_controlPointCoordVec, m_dimension);
     glEnd();
 
     glEnable(GL_LINE_STIPPLE);
     glLineStipple(3, 0x1111);
     glLineWidth(1.5);
     glBegin(GL_LINE_STRIP);
-    drawPoint(controlPointCoordVec, dimension);
+    drawPoint(m_controlPointCoordVec, m_dimension);
     glEnd();
     glDisable(GL_LINE_STIPPLE);
 }
@@ -278,18 +265,19 @@ int InterpolationCurve::display(int modeType)
             
     }
     
-    if (offsetLen != 0)
+    if (m_offsetLen != 0)
     {
         std::vector<double> offsetPtVec;
-        // counterclockwise, reverse sign of offsetLen 
+        // counterclockwise, reverse sign of m_offsetLen 
         // to maintain the behavior:positive offsetlen indicates outside contraction
-        ///offsetLen *= getPolygonArea() > 0 ? -1 : 1;
-        getOffsetPt((getPolygonArea() > 0?-1:1)*offsetLen, &uniformVec[0], (int)uniformVec.size(), &offsetPtVec);
+        ///m_offsetLen *= chordPolygonArea() > 0 ? -1 : 1;
+        auto uSeries = linspace(0, 1, 1000);
+        getOffsetPt((chordPolygonArea() > 0?-1:1)*m_offsetLen, &uSeries[0], (int)uSeries.size(), &offsetPtVec);
         if (inFocus)
             glBegin(GL_LINE_STRIP);
         else
             glBegin(GL_LINES);
-        drawPoint(offsetPtVec, dimension);
+        drawPoint(offsetPtVec, m_dimension);
         glEnd();
     }
     else
@@ -308,44 +296,92 @@ int InterpolationCurve::display(int modeType)
 
 void InterpolationCurve::clear()
 {
-    knotVec.clear();
-    interPointCoordVec.clear();
-    controlPointCoordVec.clear();
-    endDerVec.clear();
+    m_knotVec.clear();
+    m_interPointCoordVec.clear();
+    m_controlPointCoordVec.clear();
+    m_endDerVec.clear();
     readyFlag = false;
     isAppend = true;
     derivateIsSet = false;
     inFocus = false;
-    polylineLen = 0;
-    offsetLen = 0;
+    m_offsetLen = 0;
 }
 
-double InterpolationCurve::getPolyLineLen() const
-{
+double InterpolationCurve::chordPolyLineLength() const
+{    
     double sum = 0.0;
-    if(interPointCoordVec.size() < 2 * dimension)
+    if(m_interPointCoordVec.size() < 2 * m_dimension)
         return 0.0;
     
     for (int i = 0; i < getInterPointNum() - 1; ++i)
     {
-        sum += twoPointDist(&interPointCoordVec[i*dimension], &interPointCoordVec[(i + 1)*dimension], dimension);
+        sum += twoPointDist(&m_interPointCoordVec[i*m_dimension], &m_interPointCoordVec[(i + 1)*m_dimension], m_dimension);
     }
     return sum;
 }
 
-double InterpolationCurve::getPolygonArea() const
+double InterpolationCurve::chordPolygonArea() const
 {
-    if (dimension != 2)
+    if (m_dimension != 2)
         return 0;
     double sumArea = 0.0;
-    tPointd a = { interPointCoordVec[0], interPointCoordVec[1] };
+    tPointd a = { m_interPointCoordVec[0], m_interPointCoordVec[1] };
     for (int i = 1; i < getInterPointNum() - 1; ++i)
     {
-        tPointd b = { interPointCoordVec[2 * i], interPointCoordVec[2 * i + 1] };
-        tPointd c = { interPointCoordVec[2 * (i + 1)], interPointCoordVec[2 * (i + 1) + 1] };
+        tPointd b = { m_interPointCoordVec[2 * i], m_interPointCoordVec[2 * i + 1] };
+        tPointd c = { m_interPointCoordVec[2 * (i + 1)], m_interPointCoordVec[2 * (i + 1) + 1] };
         sumArea += Area2(a, b, c);
     }
     return sumArea;
+}
+
+double InterpolationCurve::curveLength(double a, double b, stlDVec* polylineCoords) const
+{
+    assert(b > a);
+    assert(a >= m_uParam[0]);
+    assert(b <= m_uParam.back());
+
+    int num = 1001;
+    auto uSeries = linspace(a, b, num);
+    stlDVec coords = evaluate(uSeries);
+    double pre = -1.;
+    double cur = polylineLength(&coords[0], m_dimension, num);
+    while (abs(cur - pre) > 1e-6)
+    {
+        pre = cur;
+
+        auto interUSeries = subdivide(&uSeries[0], num);
+        auto interCoords = evaluate(interUSeries);
+        double s1 = polylineLength(&coords[0], &interCoords[0], m_dimension, num - 1);
+        double s2 = polylineLength(&interCoords[0], &coords[m_dimension], m_dimension, num - 1);
+        cur = s1 + s2;
+
+
+        stlDVec tmp((num << 1) - 1);
+        std::merge(uSeries.begin(), uSeries.end(), interUSeries.begin(), interUSeries.end(), tmp.begin());
+        uSeries.swap(tmp);
+        stlDVec tmpCoords(((num << 1) - 1 )*m_dimension);
+        int base = 0, k = 0;
+        for (int i = 0; i < num - 1; ++i)
+        {
+            std::copy(&coords[base], &coords[base] + m_dimension, &tmpCoords[k]);
+            std::copy(&interCoords[base], &interCoords[base] + m_dimension, &tmpCoords[k + m_dimension]);
+            base += m_dimension;
+            k += (m_dimension << 1);
+        }
+        std::copy(&coords[base], &coords[base] + m_dimension, &tmpCoords[k]);
+        coords.swap(tmpCoords);
+        num = (num << 1) - 1;
+
+        //num = (num<<1) - 1; // duplicate interval number, by subdividing old intervals
+        //coords = evaluate(linspace(a, b, num));
+        //cur = polylineLength(&coords[0], m_dimension, num);
+    }
+    if (polylineCoords)
+    {
+        *polylineCoords = std::move(coords);
+    }
+    return cur;
 }
 
 InterpolationCurve::stlDVec InterpolationCurve::evaluate(double u)
@@ -354,52 +390,78 @@ InterpolationCurve::stlDVec InterpolationCurve::evaluate(double u)
     if(!getReadyFlag())
         return stlDVec();
 
-    int idx = NurbsBase::findSpan(degree, u, knotVec);
-    stlDVec N(degree + 1);
-    NurbsBase::basisFuns(idx, degree, u, knotVec, &N);
-    stlDVec result(dimension);
-    for (int i = 0; i < dimension; ++i)
+    int idx = NurbsBase::findSpan(m_degree, u, m_knotVec);
+    stlDVec N(m_degree + 1);
+    NurbsBase::basisFuns(idx, m_degree, u, m_knotVec, &N);
+    stlDVec re(m_dimension);
+    for (int i = 0; i < m_dimension; ++i)
     {
-        for (int j = 0; j < degree + 1; ++j)
+        for (int j = 0; j < m_degree + 1; ++j)
         {
-            result[i] += N[j] * controlPointCoordVec[2 * (idx - degree + j) + i];
+            re[i] += N[j] * m_controlPointCoordVec[2 * (idx - m_degree + j) + i];
         }
     }
-    return result;
+    return re;
 }
 
-int InterpolationCurve::evaluate(int num, stlDVec * coords)
+InterpolationCurve::stlDVec InterpolationCurve::evaluate(const stlDVec & uSeries) const
+{
+    stlDVec re(uSeries.size()*m_dimension);
+    for (int i = 0, base = 0; i < uSeries.size(); ++i, base+=m_dimension)
+    {
+        auto tmp = NurbsBase::deBoor(*this, uSeries[i]);
+        std::copy(tmp.begin(), tmp.end(), re.begin() + base);
+    }
+    return re;
+}
+
+InterpolationCurve::stlDVec InterpolationCurve::linspacePoints(int num) const
 {
     assert(num > 0);
-    assert(coords != nullptr);
-    coords->resize(dimension*(num + 1));
-    double step = 1.0 / num;
-
-    double v = 0;
-    for (int i = 0; i <= num; ++i, v += step)
+    if (num == 1)
     {
-        if (v > 1) v = 1;
-        stlDVec tmp(evaluate(v));
-        if (tmp.empty()) return -1;
-        std::copy(tmp.begin(), tmp.end(), coords->begin() + i*dimension);
+        return{ m_interPointCoordVec.end() - m_dimension, m_interPointCoordVec.end() };
     }
-
-    return 0;
+    stlDVec polylineCoords;
+    double len = curveLength(m_uParam[0], m_uParam.back(), &polylineCoords);
+    stlDVec tmp = accumulatePolylineLength(&polylineCoords[0], m_dimension, (int)polylineCoords.size() / m_dimension);
+    //double step = len / (num - 1);
+    //double stake = step;
+    //stlDVec re(num*m_dimension);
+    //std::copy(&polylineCoords[0], &polylineCoords[0] + m_dimension, &re[0]);
+    //for (int i = 1, k = 1; i < tmp.size() - 1; ++i) // the head and tail points will be copied outside the loop.
+    //{
+    //    if (tmp[i] >= stake)
+    //    {
+    //        std::copy(&polylineCoords[i*m_dimension], &polylineCoords[i*m_dimension] + m_dimension, &re[(k++)*m_dimension]);
+    //        stake += step;
+    //    }
+    //}    
+    //std::copy(polylineCoords.end() - m_dimension, polylineCoords.end(), re.end() - m_dimension);
+    stlDVec re(num*m_dimension);
+    auto stakes = linspace(0, len, num);
+    for (int i = 0, k = 0; i < num; ++i)
+    {
+        auto itr = std::lower_bound(tmp.begin(), tmp.end(), stakes[i]);
+        auto j = distance(tmp.begin(), itr);
+        std::copy(&polylineCoords[j*m_dimension], &polylineCoords[j*m_dimension] + m_dimension, &re[(k++)*m_dimension]);
+    }
+    return re;
 }
 
 void InterpolationCurve::getDerNorEndPts(double u, stlDVec* derPts, stlDVec* norPts) const
 {
     assert(derPts != nullptr || norPts != nullptr);
     assert(u >= 0 && u <= 1);
-    if (derPts != nullptr && derPts->size() != 2 * dimension)
-        derPts->resize(2 * dimension);
-    if (norPts != nullptr && norPts->size() != 2 * dimension)
-        norPts->resize(2 * dimension);
+    if (derPts != nullptr && derPts->size() != 2 * m_dimension)
+        derPts->resize(2 * m_dimension);
+    if (norPts != nullptr && norPts->size() != 2 * m_dimension)
+        norPts->resize(2 * m_dimension);
 
     stlDVec der;
     NurbsBase nurbsTool;
     nurbsTool.curveDer_1(*this, u, 1, &der);
-    double len = norm2(&der[dimension], dimension);
+    double len = norm2(&der[m_dimension], m_dimension);
     if (norPts != nullptr)
     {
         stlDVec nor(der); // normal  
@@ -407,20 +469,20 @@ void InterpolationCurve::getDerNorEndPts(double u, stlDVec* derPts, stlDVec* nor
         nor[nor.size() - 1] *= -1;
         std::swap(nor[nor.size() - 1], nor[nor.size() - 2]);
 
-        for (int i = 0; i < dimension; ++i)
+        for (int i = 0; i < m_dimension; ++i)
         {
-            nor[dimension + i] /= len;
-            nor[dimension + i] += nor[i];
+            nor[m_dimension + i] /= len;
+            nor[m_dimension + i] += nor[i];
         }
         std::copy(nor.begin(), nor.end(), norPts->begin());
     }
 
     if (derPts != nullptr)
     {
-        for (int i = 0; i < dimension; ++i)
+        for (int i = 0; i < m_dimension; ++i)
         {
-            der[dimension + i] /= len;
-            der[dimension + i] += der[i];
+            der[m_dimension + i] /= len;
+            der[m_dimension + i] += der[i];
         }
         std::copy(der.begin(), der.end(), derPts->begin());
     }
@@ -429,7 +491,7 @@ void InterpolationCurve::getDerNorEndPts(double u, stlDVec* derPts, stlDVec* nor
 void InterpolationCurve::getDerNorEndPts(const double u[], int num, stlDVec * allDerPts, stlDVec * allNorPts) const
 {
     assert(allDerPts != nullptr || allNorPts != nullptr);
-    int n = 2 * dimension;
+    int n = 2 * m_dimension;
     if ((allDerPts != nullptr) && (allDerPts->size() != n*num))
         allDerPts->resize(n*num);
     if ((allNorPts != nullptr) && (allNorPts->size() != n*num))
@@ -447,7 +509,7 @@ void InterpolationCurve::getDerNorEndPts(const double u[], int num, stlDVec * al
 
 void InterpolationCurve::showDerivates()
 {
-    if (controlPointCoordVec.empty())
+    if (m_controlPointCoordVec.empty())
         return;
     stlDVec allDerPts, allNorPts;
     
@@ -458,12 +520,12 @@ void InterpolationCurve::showDerivates()
     {
         uTmp.push_back((i*step > 1 ? 1 : i*step));
     }
-    getDerNorEndPts(&uTmp[0], num+1/*&uParam[0], uParam.size()*/, &allDerPts, &allNorPts);
+    getDerNorEndPts(&uTmp[0], num+1/*&m_uParam[0], m_uParam.size()*/, &allDerPts, &allNorPts);
     
 
     glBegin(GL_LINES);
-    //drawPoint(allDerPts, dimension);
-    drawPoint(allNorPts, dimension);
+    //drawPoint(allDerPts, m_dimension);
+    drawPoint(allNorPts, m_dimension);
     glEnd();
 }
 
@@ -475,7 +537,7 @@ void InterpolationCurve::showHull()
     stlDVec convex;
     tmp.GetConvexHull(&convex);
     glBegin(GL_LINE_LOOP);
-    drawPoint(convex, dimension);
+    drawPoint(convex, m_dimension);
     glEnd();
 }
 
@@ -493,7 +555,7 @@ static double NewtonMethod(const InterpolationCurve& crv, double u, const double
     assert(u >= 0 && u <= 1);
     NurbsBase nurbsTool;
     int num = 500;
-    //double eps = 1e-6;
+
     int n = crv.getDimension();
 
     VectorXd Q(n); 
@@ -576,17 +638,17 @@ int InterpolationCurve::FindNearestCurvePoint(const double Q[], stlDVec * crvPt)
     double uStep = 1.0/num, u = 0, minu = -1;
     for (int i = 0; i <= num; ++i)
     {
-        if (nurbsTool.evaluate(*this, (u > 1 ? 1 : u), &P) != 0)
+        if (nurbsTool.evaluate(*this, min(u,1), &P) != 0)
         {
             continue;
             //break; // reserve for go into
         }
 
-        double distPQ = twoPointDist(&P[0], Q, dimension);
+        double distPQ = twoPointDist(&P[0], Q, m_dimension);
         if (minDist > distPQ)
         {
             minDist = distPQ;
-            minu = (u > 1 ? 1 : u);
+            minu = min(u,1);
         }            
         u += uStep;
     }
@@ -613,10 +675,10 @@ CURVESTATE InterpolationCurve::SetClose(bool b)
         if (closeState)
         {
             setAppendFlag(false);
-            //error: interPointCoordVec address changed when push_back
-            //flag = addInterPointCoords(&interPointCoordVec[0], dimension); 
-            stlDVec frontPt(interPointCoordVec.begin(), interPointCoordVec.begin() + dimension);
-            flag = addInterPointCoords(&frontPt[0], dimension);
+            //error: m_interPointCoordVec address changed when push_back
+            //flag = addInterPointCoords(&m_interPointCoordVec[0], m_dimension); 
+            stlDVec frontPt(m_interPointCoordVec.begin(), m_interPointCoordVec.begin() + m_dimension);
+            flag = addInterPointCoords(&frontPt[0], m_dimension);
             return flag;
         }
         else
@@ -637,8 +699,8 @@ void InterpolationCurve::getOffsetPt(double offsetRatio, double u, stlDVec * off
     NurbsBase nurbsTool;
     nurbsTool.curveDer_1(*this, u, 1, &der);    
     
-    stlDVec normal(der.begin()+dimension, der.end());
-    if (dimension == 2)
+    stlDVec normal(der.begin()+m_dimension, der.end());
+    if (m_dimension == 2)
     {
         /*counterclock rotate 90*/
         normal[1] *= -1;
@@ -660,7 +722,7 @@ void InterpolationCurve::getOffsetPt(double offsetRatio, const double u[], int n
     assert(offsetPts != nullptr);
     //assert(sizeof(u) / sizeof(double) == num);
     offsetPts->clear();
-    offsetPts->reserve(dimension*num);
+    offsetPts->reserve(m_dimension*num);
     for (int i = 0; i < num; ++i)
     {
         std::vector<double> tmp;
@@ -671,7 +733,7 @@ void InterpolationCurve::getOffsetPt(double offsetRatio, const double u[], int n
 
 void InterpolationCurve::setOffsetLength(double l)
 {
-    offsetLen = l;
+    m_offsetLen = l;
     return;
 }
 
@@ -696,18 +758,12 @@ void InterpolationCurve::drawPoint(stlDVec & vec, int dim)
     }
 }
 
-bool InterpolationCurve::init()
-{
-    int num = 1000;
-    double step = 1.0 / num;
-    double uVal = 0;
-    uniformVec.resize(num + 1);
-    for (int i = 1; i < num + 1; ++i)
-    {
-        uniformVec[i] = uniformVec[i - 1] + step;
-    }
-    uniformVec[num] = 1;
-
-    return true;
-}
+//bool InterpolationCurve::init(int stepNum)
+//{
+//    double step = 1.0 / stepNum;
+//    uniformVec.resize(stepNum + 1);
+//    std::generate(uniformVec.begin(), uniformVec.end()-1, [re = 0.0, &step]() mutable { return re+=step; });
+//    uniformVec[stepNum] = 1;
+//    return true;
+//}
 

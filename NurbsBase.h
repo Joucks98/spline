@@ -1,8 +1,8 @@
-#pragma once
 #ifndef __NURBSBASE__
 #define __NURBSBASE__
 
 #include <vector>
+#include <xutility>
 #include<Windows.h>
 #include<gl/GLU.h>
 class InterpolationCurve;
@@ -50,7 +50,8 @@ public:
     }
     */
     double oneBasicFuns(int p, int m, const double U[], int i, double u);
-    static int findSpan(int p, double u, const std::vector<double>& knotVec);
+    static int findSpan(int p, double u, const std::vector<double>& U);
+    static std::pair<int, int> findSpanMult(int p, double u, const std::vector<double>& U);
     static int basisFuns(int idx, int p, double u, const std::vector<double>& knotVec, std::vector<double>* N);
     // Make sure Q size is n+1
     // intput: Q, knotVec, D0, DN
@@ -84,6 +85,7 @@ public:
     void curveDer_1(const InterpolationCurve& crv, double u, int d, std::vector<double>* der);
     
     int evaluate(const InterpolationCurve& crv, double u, std::vector<double>* val);
+    static std::vector<double> deBoor(const InterpolationCurve& crv, double u);
 private:
 
     GLUnurbsObj* ptrNurbs;

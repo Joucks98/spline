@@ -1,11 +1,18 @@
+#include <memory>
+#include <algorithm>
+//#include <tuple>
 #include "NurbsBase.h"
 #include "EquationSolver.h"
 #include "InterpolationCurve.h"
+
+#define EPS 1e-12
+
 //extern bool toShowInter;
 using std::cout;
 using std::ostream;
 using std::endl;
 using std::cerr;
+using std::unique_ptr;
 
 NurbsBase::NurbsBase()
 {
@@ -191,25 +198,31 @@ double NurbsBase::oneBasicFuns(int p, int m, const double U[], int i, double u)
     return temp;
 }
 
-int NurbsBase::findSpan(int p, double u, const std::vector<double>& knotVec)
+int NurbsBase::findSpan(int p, double u, const std::vector<double>& U)
 {
-    int n = (int)(knotVec.size() - 1 - p - 1);
+    int n = (int)(U.size() - 1 - p - 1);
     assert(n > 0);
     assert(u >= 0 && u <= 1);
-    if (abs(u - knotVec[n + 1]) < 1e-6)
+    if (abs(u - U[n + 1]) < 1e-6)
         return n;
     int low = p;
     int high = n + 1;
     int mid = (low + high) / 2;
-    while (u < knotVec[mid] || u >= knotVec[mid + 1])
+    while (u < U[mid] || u >= U[mid + 1])
     {
-        if (u < knotVec[mid])
+        if (u < U[mid])
             high = mid;
         else
             low = mid;
         mid = (low + high) / 2;
     }
     return mid;
+}
+
+std::pair<int, int> NurbsBase::findSpanMult(int p, double u, const std::vector<double>& U)
+{
+    int s = static_cast<int>(std::count_if(U.begin(), U.end(), [u](auto& p) { return abs(p - u) < EPS; }));
+    return std::make_pair(findSpan(p, u, U), s);
 }
 
 int NurbsBase::basisFuns(int idx, int p, double u, const std::vector<double>& knotVec, std::vector<double>* N)
@@ -379,7 +392,7 @@ int NurbsBase::generateCrvControlPoints(InterpolationCurve * crv, bool tri)
         }
 
         int nQ = (*crv).getInterPointNum();
-        /*double length = crv->getPolyLineLen();
+        /*double length = crv->chordPolyLineLength();
         double Q_10[2] = { QCoords[2] - QCoords[0], QCoords[3] - QCoords[1] };
         double Q_nn_1[2] = { QCoords[(nQ - 1)*dim] - QCoords[(nQ - 2)*dim], 
                              QCoords[(nQ - 1)*dim + 1] - QCoords[(nQ - 2)*dim + 1] };
@@ -573,20 +586,15 @@ void NurbsBase::dersBasisFuns(int i, double u, int p, int n, const std::vector<d
     /*输入：i-第几个基函数，与控制点对应，u;p-次数；n-倒数的次数；U-节点区间，ders是(n+1)x(p+1)维的*/
     /*输出：ders是(n+1)x(p+1)*/
 
-    double **ndu = new double*[p + 1];
-    for (int i = 0; i <p + 1; i++)
-        ndu[i] = new double[p + 1];
-    double **a = new double*[n + 1];
-    for (int i = 0; i < n + 1; i++)
-        a[i] = new double[n + 1];
-    /*double **ders = new double*[n + 1];
-    for (int i = 0; i < p + 1; i++)
-    ders[i] = new double[p + 1];*/
+    vector<double*> ndu(p + 1);
+    for (auto& it: ndu) it = new double[p + 1];
+    vector<double*> a(n + 1);
+    for (auto& it: a) it = new double[n + 1];
 
     int j, r, s1, s2, k, rk, pk, j1, j2;
     double d, saved, temp;
-    double *left = new double[p + 1];
-    double *right = new double[p + 1];
+    vector<double> left(p + 1, 0);
+    vector<double> right(p + 1, 0);
 
     ndu[0][0] = 1.0;
     for (j = 1; j <= p; j++)
@@ -595,7 +603,7 @@ void NurbsBase::dersBasisFuns(int i, double u, int p, int n, const std::vector<d
         right[j] = U[i + j] - u;
         saved = 0.0;
         for (r = 0; r < j; r++)
-        {/*down triangle*/
+        {   /*down triangle*/
             ndu[j][r] = right[r + 1] + left[j - r];
             temp = ndu[r][j - 1] / ndu[j][r];
             /*up triangle*/
@@ -604,19 +612,12 @@ void NurbsBase::dersBasisFuns(int i, double u, int p, int n, const std::vector<d
         }
         ndu[j][j] = saved;
     }
-    /*for (i = 0; i <= p; i++)
-    {
-    for (j = 0; j <= p; j++)
-    {
-    cout << ndu[i][j] << '\t';
-    }
-    cout << endl;
-    }*/
-    for (j = 0; j <= p; j++)/*载入基函数的值*/
+
+    for (j = 0; j <= p; j++) // 载入基函数的值
         ders[0][j] = ndu[j][p];
-    for (r = 0; r <= p; r++)//对函数下标进行循环
+    for (r = 0; r <= p; r++) // 对函数下标进行循环
     {
-        s1 = 0; s2 = 1;//改变数组a的行
+        s1 = 0; s2 = 1; // 改变数组a的行
         a[0][0] = 1.0;
         /*calculate the kth ders , k=0...n*/
         for (k = 1; k <= n; k++)
@@ -627,14 +628,10 @@ void NurbsBase::dersBasisFuns(int i, double u, int p, int n, const std::vector<d
                 a[s2][0] = a[s1][0] / ndu[pk + 1][rk];
                 d = a[s2][0] * ndu[rk][pk];
             }
-            if (rk >= -1)
-                j1 = 1;
-            else
-                j1 = -rk;
-            if (r - 1 <= pk)
-                j2 = k - 1;
-            else
-                j2 = p - r;
+
+            j1 = (rk >= -1) ? 1 : -rk;
+            j2 = (r - 1 <= pk) ? (k - 1) : (p - r);
+
             for (j = j1; j <= j2; j++)
             {
                 a[s2][j] = (a[s1][j] - a[s1][j - 1]) / ndu[pk + 1][rk + j];
@@ -656,28 +653,12 @@ void NurbsBase::dersBasisFuns(int i, double u, int p, int n, const std::vector<d
             ders[k][j] *= r;
         r *= (p - k);
     }
-    delete[]left;
-    delete[]right;
 
-
-    //double **ders = new double*[n + 1];
-    //for (int i = 0; i <= p + 1; i++)
-    //	ders[i] = new double[p + 1];
-
-    for (i = 0; i <p + 1; i++)
-    {
-        delete[] ndu[i];
-    }
-    delete[] ndu;
-    for (i = 0; i <n + 1; i++)
-    {
-        delete[] a[i];
-    }
-    delete[]a;
-    //return ders;
+    for (auto& it: ndu) delete[] it;
+    for (auto& it : a) delete[] it;
 }
 
-void NurbsBase::curveDer_1(/*int n, */int p, const std::vector<double>& U, 
+void NurbsBase::curveDer_1(int p, const std::vector<double>& U, 
     const std::vector<double>& PC, double u, int d, int dim, vector<double>* CK)
 {
     /*输入：n-控制点的角标,p,U,PC-控制点,u,d-d阶导数;输出：CK,CK是一个dx3的矩阵,第一行表示曲线上的点，第二行表示一阶导数，第三行表示二阶导数的xyz,代表的是向量*/
@@ -701,13 +682,12 @@ void NurbsBase::curveDer_1(/*int n, */int p, const std::vector<double>& U,
             //return 0;
     //}
 
-    double **ders = new double*[d + 1];
-    for (int i = 0; i < d + 1; ++i)
-        ders[i] = new double[p + 1];
+    vector<double*> ders(d + 1);
+    for (auto& it: ders) it = new double[p + 1];
 
-    int du = d < p ? d : p;    
+    int du = min(d,p);    
     int span = findSpan(p, u, U);
-    dersBasisFuns(span, u, p, du, U, ders);
+    dersBasisFuns(span, u, p, du, U, &ders[0]);
 
     CK->clear();
     CK->resize(dim * (d+1), 0);
@@ -722,10 +702,7 @@ void NurbsBase::curveDer_1(/*int n, */int p, const std::vector<double>& U,
         }
     }
     
-    for (int i = 0; i <d + 1; ++i)
-        delete[] ders[i];
-    delete[]ders;
-
+    for (auto& it: ders) delete[] it;
 }
 
 void NurbsBase::curveDer_1(const InterpolationCurve & crv, double u, int d, std::vector<double>* der)
@@ -751,20 +728,76 @@ int NurbsBase::evaluate(const InterpolationCurve & crv, double u, std::vector<do
         return 1;
     }
     val->clear();
-    int p = crv.getDegree();
+    /*int p = crv.getDegree();
     int idx = findSpan(p, u, crv.getKnots());
     std::vector<double> N(p + 1);
     basisFuns(idx, p, u, crv.getKnots(), &N);
     std::vector<double> result(crv.getDimension());
     for (int i = 0; i < crv.getDimension(); ++i)
     {
-        for (int j = 0; j < p + 1; ++j)
+        for (int j = 0; j < N.size(); ++j)
         {
-            result[i] += N[j] * crv.getControlPointCoords()[2 * (idx - p + j) + i];
+            result[i] += N[j] * crv.getControlPointCoords()[crv.getDimension() * (idx - p + j) + i];
         }
     }
-    val->swap(result);
+    val->swap(result);*/
+
+    val->swap(deBoor(crv, u));
     return 0;
+}
+
+std::vector<double> NurbsBase::deBoor(const InterpolationCurve & crv, double u)
+{
+    assert(u >= 0 && u <= 1);
+    //u = .6;
+    int p = crv.getDegree();
+    //int p = 2;
+    auto& U = crv.getKnots();
+    //vector<double> U = { 0, 0, 0, .2, .4, .6, .8, .8, 1, 1, 1 };
+    auto& CP = crv.getControlPointCoords();
+    /*vector<double> CP = { 0.709364830858073,	0.959743958516081,
+        0.754686681982361,	0.340385726666133,
+        0.276025076998578,	0.585267750979777,
+        0.679702676853675,	0.223811939491137,
+        0.400000000000000,	0.400000000000000,
+        0.162611735194631,	0.255095115459269,
+        0.118997681558377,	0.505957051665142,
+        0.498364051982143,	0.699076722656686 };*/
+    auto tmp = findSpanMult(p, u, U);
+    int idx = tmp.first;
+    int s = tmp.second;
+
+    int n = crv.getControlPointNum() - 1;
+    //int n = U.size() - 1 - p - 1;
+    int dimension = crv.getDimension();
+    //int dimension = 2;
+    if (s == p+1)
+    {
+        if (idx == p)
+        {
+            return{ &(CP[0]), &(CP[0]) + dimension };
+        }
+        else
+        {
+            return{ &(CP[n*dimension]), &(CP[n*dimension]) + dimension };
+        }
+    }   
+
+    vector<double> Q(&CP[(idx-p)*dimension], &CP[(idx-s)*dimension]+dimension);
+    for (int r = 1; r <= p-s; ++r)
+    {
+        for (int i = idx - p + r; i <= idx - s; ++i)
+        {
+            int L = i - (idx - p + r) + 1;
+            double alpha = (u - U[i]) / (U[i + p - r + 1] - U[i]);
+            for (int k = 0; k < dimension; ++k)
+            {
+                int base = (L - 1)*dimension;
+                Q[base + k] = (1 - alpha)*Q[base + k] + alpha*Q[base + dimension + k];
+            }
+        }
+    }
+    return{ &Q[0], &Q[0]+dimension };
 }
 
 

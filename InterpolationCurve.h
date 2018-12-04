@@ -20,28 +20,26 @@ typedef enum
 namespace Interpolation
 {
     double norm2(const double v[], int dim);
-    double twoPointDist(const double p1[], const double p2[], int dim);
 }
 
 class InterpolationCurve
 {
     typedef std::vector<double> stlDVec;
 public:
-    InterpolationCurve(): degree(0), dimension(2), 
+    InterpolationCurve(): m_degree(0), m_dimension(2), 
                           readyFlag(0), isAppend(1), 
-                          derivateIsSet(0), inFocus(0), closeState(0),polylineLen(0), offsetLen(0)
+                          derivateIsSet(0), inFocus(0), closeState(0), m_offsetLen(0)
     {}
     InterpolationCurve(int deg, int dim = 2) : readyFlag(0), 
                                                isAppend(1),
                                                derivateIsSet(0), 
                                                inFocus(0), 
                                                closeState(0),
-                                               polylineLen(0),
-                                               offsetLen(0)
+                                               m_offsetLen(0)
                                                
     {
-        degree = deg;
-        dimension = dim;
+        m_degree = deg;
+        m_dimension = dim;
         //ptrNurbs = gluNewNurbsRenderer();//创建NURBS对象ptrNurbs
         //gluNurbsProperty(ptrNurbs, GLU_SAMPLING_TOLERANCE, 25);
         //gluNurbsProperty(ptrNurbs, GLU_DISPLAY_MODE, GLU_OUTLINE_POLYGON);//把表面渲染为多边形 
@@ -58,9 +56,9 @@ public:
     bool getReadyFlag()
     {
         //...
-        /*if (!controlPointCoordVec.empty() && checkKnotNum())
+        /*if (!m_controlPointCoordVec.empty() && checkKnotNum())
             readyFlag = true;*/
-        return readyFlag = !interPointCoordVec.empty() &&!controlPointCoordVec.empty() && checkKnotNum();
+        return readyFlag = !m_interPointCoordVec.empty() &&!m_controlPointCoordVec.empty() && checkKnotNum();
 
     }
     bool appendable()const  { return isAppend; }
@@ -71,40 +69,40 @@ public:
     
     bool isClosed()const { return closeState; }
 
-    const stlDVec& getEndDers() { return endDerVec; }
-    void setDerivEnd(bool setFlag, const std::vector<double>* derVec = nullptr);
+    const stlDVec& getEndDers() { return m_endDerVec; }
+    void setDerivEnd(bool setFlag, const stlDVec* derVec = nullptr);
 
-    // dimension operator
+    // m_dimension operator
     /*void setDimension(int d)
     {
         assert(d > 0);
-        dimension = d;
+        m_dimension = d;
     }*/
-    int getDimension() const  { return dimension;}
+    int getDimension() const  { return m_dimension;}
 
-    // degree operator
+    // m_degree operator
     void setDegree(int d);
-    int getDegree() const  { return degree;}    
+    int getDegree() const  { return m_degree;}    
 
-    // uParam operator
-    const stlDVec& getUparam() const { return uParam; }
-    void setUparam(stlDVec&& u) { uParam = std::move(u); }
+    // m_uParam operator
+    const stlDVec& getUparam() const { return m_uParam; }
+    void setUparam(stlDVec&& u) { m_uParam = std::move(u); }
 
     // knots operator
-    const stlDVec& getKnots() const { return knotVec; }
-    void setKnots(stlDVec && a) { knotVec = std::move(a);}
+    const stlDVec& getKnots() const { return m_knotVec; }
+    void setKnots(stlDVec && a) { m_knotVec = std::move(a);}
     /*void setKnots(const stlDVec & a)
     {
-        knotVec = a;
+        m_knotVec = a;
     }*/
     bool checkKnotNum() const
     {
-        return knotVec.size() == getControlPointNum() + degree + 1;
+        return m_knotVec.size() == getControlPointNum() + m_degree + 1;
     }
     
     bool isKnotReady() const
     {
-        return knotVec.size() == getControlPointNum() + degree + 1;
+        return m_knotVec.size() == getControlPointNum() + m_degree + 1;
     }
 
 
@@ -112,7 +110,7 @@ public:
     // inter point operator
     const stlDVec& getInterPointCoords() const
     {
-        return interPointCoordVec;
+        return m_interPointCoordVec;
     }
     CURVESTATE setInterPointCoords(stlDVec && a);
     
@@ -123,7 +121,7 @@ public:
     
     int getInterPointNum() const
     {
-        return (int)interPointCoordVec.size() / dimension;
+        return (int)m_interPointCoordVec.size() / m_dimension;
     }
     void showInterPoints(int modeType = 0);    
 
@@ -134,24 +132,27 @@ public:
 
     const stlDVec& getControlPointCoords() const
     {
-        return controlPointCoordVec;
+        return m_controlPointCoordVec;
     }
     void setControlPointCoords(stlDVec && a)
     {
-        controlPointCoordVec = std::move(a);
+        m_controlPointCoordVec = std::move(a);
     }
     int getControlPointNum() const
     {
-        return (int)controlPointCoordVec.size() / dimension;
+        return (int)m_controlPointCoordVec.size() / m_dimension;
     }
     void showControlPoints(int modeType = 0);
     int display(int modeType = 0);
     void clear();    
-    double getPolyLineLen() const;
-    double getPolygonArea() const;
+    double chordPolyLineLength() const;
+    double chordPolygonArea() const;
+    double curveLength(double a = 0.0, double b = 1.0, stlDVec* polylineCoords = nullptr) const;
+
 
     stlDVec evaluate(double u);
-    int evaluate(int num, stlDVec* coords);
+    stlDVec evaluate(const stlDVec& uSeries) const;
+    stlDVec linspacePoints(int num) const; // num : equally spaced points number. 
 
     void getDerNorEndPts(double u, stlDVec* derPts, stlDVec* norPts) const;
     void getDerNorEndPts(const double u[], int num, stlDVec* allDerPts, stlDVec* allNorPts) const;
@@ -163,21 +164,23 @@ public:
     void getOffsetPt(double offsetRatio, double u, stlDVec* offsetPt) const;
     void getOffsetPt(double offsetRatio, const double u[], int num, stlDVec* offsetPts) const;
     void setOffsetLength(double l);
+
+    
 private:
     void drawPoint(stlDVec & vec, int dim);
-    static bool init();
+    //static bool init(int num);
 
-    int degree;
-    int dimension;
+    int m_degree;
+    int m_dimension;
     bool readyFlag, isAppend, derivateIsSet, inFocus, closeState;
-    double polylineLen, offsetLen;
-    stlDVec uParam;
-    stlDVec knotVec;
-    stlDVec interPointCoordVec;
-    stlDVec controlPointCoordVec;
-    stlDVec endDerVec;
-    static stlDVec uniformVec;
-    static bool _init;    
+    double m_offsetLen;
+    stlDVec m_uParam;
+    stlDVec m_knotVec;
+    stlDVec m_interPointCoordVec;
+    stlDVec m_controlPointCoordVec;
+    stlDVec m_endDerVec;
+    //static stlDVec uniformVec;
+    //static bool _init;    
 };
 
 #endif // !__INTERPOLATIONCURVE__

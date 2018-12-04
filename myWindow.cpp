@@ -1,4 +1,5 @@
 #include "myWindow.h"
+#include "GeometryCalc.h"
 
 #define BMP_Header_Length 54
 #define MAX_CHAR    128
@@ -55,7 +56,8 @@ void myWindow::myDisplay()
     //glTranslatef(0, 0, -10);
 
     glScalef(zoomRatio, zoomRatio, zoomRatio);
-    //glDrawPixels(imagewidth, imageheight, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixeldata
+    // draw background pic
+    //glDrawPixels(imagewidth, imageheight, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixeldata);
 
 
     for (int i = 0; i < curveVec.size(); ++i)
@@ -194,7 +196,7 @@ void myWindow::myMotion(int x, int y)
             //glutSetCursor(GLUT_CURSOR_CROSSHAIR); // 表示捕捉到有插入点改动
 
             
-            if ((eCurve.getInterPointNum() > 1) && (Interpolation::twoPointDist(&chosenPt[0], qCoord, 2) < 20.0 /*/ (eCurve.getInterPointNum() - 1)*/))
+            if ((eCurve.getInterPointNum() > 1) && (twoPointDist(&chosenPt[0], qCoord, 2) < 20.0 /*/ (eCurve.getInterPointNum() - 1)*/))
             {
                 eCurve.update(eCurve.modifyInerPointCoords(crv_pt_idxs.second, qCoord));
             }
@@ -296,10 +298,12 @@ void myWindow::myMouse(int button, int state, int x, int y)
                 double minDist = MAXLONG;
                 for (auto & m : curveVec)
                 {
+                    double len = m.curveLength(0, 1);
+                    auto cc = m.linspacePoints(7);
                     std::vector<double> tmp;
                     if (m.FindNearestCurvePoint(qCoord, &tmp) != 0)
                         continue;
-                    double tmpDist = Interpolation::twoPointDist(qCoord, &tmp[0], 2);
+                    double tmpDist = twoPointDist(qCoord, &tmp[0], 2);
                     if ( tmpDist < minDist)
                     {
                         minDist = tmpDist;
@@ -366,10 +370,9 @@ void myWindow::myMouse(int button, int state, int x, int y)
 
 void myWindow::myKey(unsigned char key, int x, int y)
 {
-    switch (key)
+    switch (tolower(key))
     {
     case 's':
-    case 'S':
         // swap buffer, or grab may have a wrong screen shot.
         glutSwapBuffers();
         grab();
@@ -377,7 +380,6 @@ void myWindow::myKey(unsigned char key, int x, int y)
         glutSwapBuffers();
         break;
     case 'b':
-    case 'B':
         toBiHe = !toBiHe;
         for (auto iter = curveVec.begin(); iter != curveVec.end(); ++iter)
         {
@@ -389,12 +391,10 @@ void myWindow::myKey(unsigned char key, int x, int y)
         glutPostRedisplay();
         break;
     case 'c':
-    case 'C':
         toShowCp = !toShowCp;
         glutPostRedisplay();
         break;
     case 'd':
-    case 'D':
         toShowDer = !toShowDer;
         /*for (auto iter = curveVec.begin(); iter != curveVec.end(); ++iter)
         {
@@ -408,21 +408,17 @@ void myWindow::myKey(unsigned char key, int x, int y)
         glutPostRedisplay();
         break;
     case 'h':
-    case 'H':
         toShowHull = !toShowHull;
         glutPostRedisplay();
         break;
     case 'i':
-    case 'I':
         toShowInter = !toShowInter;
         glutPostRedisplay();
         break;
     case 'e':
-    case 'E':
         toEdit = !toEdit;
         glutPostRedisplay();
     case 'o':
-    case 'O':
         toOffset = !toOffset;
         
         /*if (toOffset)
@@ -433,7 +429,6 @@ void myWindow::myKey(unsigned char key, int x, int y)
         glutPostRedisplay();
         break;
     case 'r':
-    case 'R':
         /*if (!curveVec.empty())
         curveVec.pop_back();*/
         for (auto iter = curveVec.begin(); iter != curveVec.end(); )
@@ -606,7 +601,7 @@ void myWindow::showMinDist()
     sprintf_s(ch, sizeof(ch), "(%.2f, %.2f)", chosenPt[0], chosenPt[1]);
     XPrintString(ch);*/
     glRasterPos2f((GLfloat)((minDistPt[0] + chosenPt[0])*.5f), (GLfloat)((minDistPt[1] + chosenPt[1])*.5f));
-    sprintf_s(ch, sizeof(ch), "%.5f", Interpolation::twoPointDist(&minDistPt[0], &chosenPt[0], 2));
+    sprintf_s(ch, sizeof(ch), "%.5f", twoPointDist(&minDistPt[0], &chosenPt[0], 2));
     XPrintString(ch);
 }
 
@@ -709,7 +704,7 @@ pair<int, int> myWindow::findMoveIndex(const vector<InterpolationCurve>& crvVec,
         for (int i = 0; i < crv.getInterPointNum(); ++i)
         {
             std::vector<double> m{ iVec[i * 2], iVec[i * 2 + 1] };
-            double tmp = Interpolation::twoPointDist(&Q[0], &m[0], 2);
+            double tmp = twoPointDist(&Q[0], &m[0], 2);
             if (tmp < distMin && tmp < 0.4)
             {
                 distMin = tmp;
@@ -719,7 +714,7 @@ pair<int, int> myWindow::findMoveIndex(const vector<InterpolationCurve>& crvVec,
         }
         //std::vector<double> crvPt;
         //crv.FindNearestCurvePoint(&Q[0], &crvPt);
-        //if (!crvPt.empty() && Interpolation::twoPointDist(&Q[0], &crvPt[0], 2) < .3)
+        //if (!crvPt.empty() && twoPointDist(&Q[0], &crvPt[0], 2) < .3)
         //{
         //    //const_cast<InterpolationCurve&>(crv).setFocus(1);
         //    hoverPt.swap(crvPt);
