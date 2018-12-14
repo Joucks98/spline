@@ -1,3 +1,4 @@
+#include <Windows.h>
 #include "myWindow.h"
 #include "GeometryCalc.h"
 
@@ -113,7 +114,7 @@ void myWindow::myDisplay()
         // highlight picked point
         if (crv_pt_idxs.first >= 0)
         {
-            InterpolationCurve & chosenCrv = curveVec[crv_pt_idxs.first];
+            auto & chosenCrv = curveVec[crv_pt_idxs.first];
             glColor3f(0.7f, 0.6f, 1.f);
             glPointSize(20.0);
             glDisable(GL_POINT_SMOOTH);
@@ -131,11 +132,11 @@ void myWindow::myDisplay()
             glEnd();
         }
 
-        if (shadowCrv.getReadyFlag()) 
+        if (m_stayCrv.getReadyFlag()) 
         {
-            shadowCrv.display(toEdit);
-            shadowCrv.showInterPoints(toEdit);
-            //shadowCrv.showControlPoints();
+            m_stayCrv.display(toEdit);
+            m_stayCrv.showInterPoints(toEdit);
+            //m_stayCrv.showControlPoints();
         }
         
     }
@@ -178,7 +179,7 @@ void myWindow::myMotion(int x, int y)
 
     if (!toEdit)
     {
-        InterpolationCurve &iCurve = curveVec.back();
+        auto &iCurve = curveVec.back();
         if (!iCurve.appendable())
             return;
         std::vector<double> copied(iCurve.getInterPointCoords());
@@ -192,7 +193,7 @@ void myWindow::myMotion(int x, int y)
         if (crv_pt_idxs.second >= 0 && crv_pt_idxs.second < curveVec[crv_pt_idxs.first].getInterPointNum() 
             && curveVec[crv_pt_idxs.first].isInFocus()) // only inFocus can move and remove for to show in stripple line.
         {
-            InterpolationCurve &eCurve = curveVec[crv_pt_idxs.first];
+            auto &eCurve = curveVec[crv_pt_idxs.first];
             //glutSetCursor(GLUT_CURSOR_CROSSHAIR); // 表示捕捉到有插入点改动
 
             
@@ -273,8 +274,8 @@ void myWindow::myMouse(int button, int state, int x, int y)
             {
                 curveVec[crv_pt_idxs.first].setFocus(!curveVec[crv_pt_idxs.first].isInFocus());
                 
-                shadowCrv = curveVec[crv_pt_idxs.first];
-                shadowCrv.setFocus(false);
+                m_stayCrv = curveVec[crv_pt_idxs.first];
+                m_stayCrv.setFocus(false);
                
 
                 chosenPt[0] = curveVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second];
@@ -332,11 +333,10 @@ void myWindow::myMouse(int button, int state, int x, int y)
         {
             if (crv_pt_idxs.second != -1 && curveVec[crv_pt_idxs.first].isInFocus())
             {
+                curveVec[crv_pt_idxs.first].setFocus(false);
+                m_stayCrv.clear();
                 curveVec[crv_pt_idxs.first].update(curveVec[crv_pt_idxs.first].modifyInerPointCoords(crv_pt_idxs.second, qCoord));
                 crv_pt_idxs = make_pair(-1, -1);
-
-                shadowCrv.clear();
-
             }
 
         }
@@ -695,17 +695,17 @@ pair<int, int> myWindow::findMoveIndex(const vector<InterpolationCurve>& crvVec,
     std::vector<double> Q = { x, y };
     for (int k = 0; k < crvVec.size(); ++k)
     {
-        const InterpolationCurve& crv = crvVec[k];
+        const auto& crv = crvVec[k];
         if (crv.getInterPointCoords().empty())
             continue;
 
-        const std::vector<double> &iVec = crv.getInterPointCoords();
+        auto &iVec = crv.getInterPointCoords();
 
         for (int i = 0; i < crv.getInterPointNum(); ++i)
         {
             std::vector<double> m{ iVec[i * 2], iVec[i * 2 + 1] };
             double tmp = twoPointDist(&Q[0], &m[0], 2);
-            if (tmp < distMin && tmp < 0.4)
+            if (tmp < distMin && tmp < 0.4) // enough close
             {
                 distMin = tmp;
                 crvId = k;
@@ -736,10 +736,10 @@ void myWindow::offsetCurve(double lamda)
         if (!crv.isInFocus())
             continue;
         
-        if (!shadowCrv.getReadyFlag())
+        if (!m_stayCrv.getReadyFlag())
         {
-            shadowCrv = crv;
-            shadowCrv.setFocus(false);
+            m_stayCrv = crv;
+            m_stayCrv.setFocus(false);
         }
         crv.setOffsetLength(lamda);
 
