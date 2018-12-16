@@ -86,6 +86,9 @@ public:
     
     int evaluate(const InterpolationCurve& crv, double u, std::vector<double>* val);
     static std::vector<double> deBoor(const InterpolationCurve& crv, double u);
+    static int curveKnotIns(
+        const std::vector<double>& U, const std::vector<double>& CP, int dim, int p, double u, int h,
+        std::vector<double>* UQ, std::vector<double>* Qw);
 private:
 
     GLUnurbsObj* ptrNurbs;

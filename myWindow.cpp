@@ -324,7 +324,7 @@ void myWindow::myMouse(int button, int state, int x, int y)
         glutSetCursor(GLUT_CURSOR_RIGHT_ARROW);
         if (toEdit)
         {
-            if (crv_pt_idxs.second != -1 && curveVec[crv_pt_idxs.first].isInFocus())
+            if (crv_pt_idxs.second != -1 && m_crvVec[crv_pt_idxs.first].isInFocus())
             {
                 m_crvVec[crv_pt_idxs.first].setFocus(false);
                 m_stayCrv.clear();

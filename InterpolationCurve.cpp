@@ -381,25 +381,25 @@ double InterpolationCurve::curveLength(double a, double b, stlDVec* polylineCoor
     return cur;
 }
 
-InterpolationCurve::stlDVec InterpolationCurve::evaluate(double u)
-{
-    assert(u >= 0 && u <= 1);
-    if(!getReadyFlag())
-        return stlDVec();
-
-    int idx = NurbsBase::findSpan(m_degree, u, m_knotVec);
-    stlDVec N(m_degree + 1);
-    NurbsBase::basisFuns(idx, m_degree, u, m_knotVec, &N);
-    stlDVec re(m_dimension);
-    for (int i = 0; i < m_dimension; ++i)
-    {
-        for (int j = 0; j < m_degree + 1; ++j)
-        {
-            re[i] += N[j] * m_controlPointCoordVec[2 * (idx - m_degree + j) + i];
-        }
-    }
-    return re;
-}
+//InterpolationCurve::stlDVec InterpolationCurve::evaluate(double u)
+//{
+//    assert(u >= 0 && u <= 1);
+//    if(!getReadyFlag())
+//        return stlDVec();
+//
+//    int idx = NurbsBase::findSpan(m_degree, u, m_knotVec);
+//    stlDVec N(m_degree + 1);
+//    NurbsBase::basisFuns(idx, m_degree, u, m_knotVec, &N);
+//    stlDVec re(m_dimension);
+//    for (int i = 0; i < m_dimension; ++i)
+//    {
+//        for (int j = 0; j < m_degree + 1; ++j)
+//        {
+//            re[i] += N[j] * m_controlPointCoordVec[2 * (idx - m_degree + j) + i];
+//        }
+//    }
+//    return re;
+//}
 
 InterpolationCurve::stlDVec InterpolationCurve::evaluate(const stlDVec & uSeries) const
 {

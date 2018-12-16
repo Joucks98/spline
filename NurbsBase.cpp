@@ -1,3 +1,4 @@
+#define _SCL_SECURE_NO_WARNINGS
 #include <memory>
 #include <algorithm>
 //#include <tuple>
@@ -769,35 +770,101 @@ std::vector<double> NurbsBase::deBoor(const InterpolationCurve & crv, double u)
 
     int n = crv.getControlPointNum() - 1;
     //int n = U.size() - 1 - p - 1;
-    int dimension = crv.getDimension();
-    //int dimension = 2;
+    int dim = crv.getDimension();
+    //int dim = 2;
+
+    std::vector<double> UQ;
+    std::vector<double> Qw;
+    std::vector<double> UP{ 0,	0,	0,	.2,	.4,	.6,	.8,	.8,	1,	1,	1 };
+    std::vector<double> Pw{ 0.709364830858073,	0.959743958516081,
+        0.754686681982361,	0.340385726666133,
+        0.276025076998578, 0.585267750979777,
+        0.679702676853675, 0.223811939491137,
+        0.400000000000000, 0.400000000000000,
+        0.162611735194631, 0.255095115459269,
+        0.118997681558377, 0.505957051665142,
+        0.498364051982143, 0.699076722656686 };
+
+    curveKnotIns(UP, Pw, 2, 2, 3.25/5, 2 - 0, &UQ, &Qw);
+
     if (s == p+1)
     {
         if (idx == p)
         {
-            return{ &(CP[0]), &(CP[0]) + dimension };
+            return{ &(CP[0]), &(CP[0]) + dim };
         }
         else
         {
-            return{ &(CP[n*dimension]), &(CP[n*dimension]) + dimension };
+            return{ &(CP[n*dim]), &(CP[n*dim]) + dim };
         }
     }   
 
-    vector<double> Q(&CP[(idx-p)*dimension], &CP[(idx-s)*dimension]+dimension);
+    vector<double> Q(&CP[(idx-p)*dim], &CP[(idx-s)*dim]+dim);
     for (int r = 1; r <= p-s; ++r)
     {
         for (int i = idx - p + r; i <= idx - s; ++i)
         {
             int L = i - (idx - p + r) + 1;
             double alpha = (u - U[i]) / (U[i + p - r + 1] - U[i]);
-            for (int k = 0; k < dimension; ++k)
+            for (int k = 0; k < dim; ++k)
             {
-                int base = (L - 1)*dimension;
-                Q[base + k] = (1 - alpha)*Q[base + k] + alpha*Q[base + dimension + k];
+                int base = (L - 1)*dim;
+                Q[base + k] = (1 - alpha)*Q[base + k] + alpha*Q[base + dim + k];
             }
         }
     }
-    return{ &Q[0], &Q[0]+dimension };
+    return{ &Q[0], &Q[0]+dim };
 }
+
+int NurbsBase::curveKnotIns(
+    const std::vector<double>& U, const std::vector<double>& CP, int dim, int p, double u, int h,
+    std::vector<double>* UQ, std::vector<double>* Qw)
+{
+    assert(UQ != nullptr);
+    assert(Qw != nullptr);
+    UQ->clear();
+    Qw->clear();
+    //auto p = crv.getDegree();
+    //auto& U = crv.getKnots();
+    auto ks = findSpanMult(p, u, U);
+    if (h <= 0 || h + ks.second > p)
+    {
+        return -1;
+    }
+    //auto& CP = crv.getControlPointCoords();
+
+    UQ->resize(U.size() + h, u);
+    std::copy(U.begin(), U.begin() + ks.first + 1, UQ->begin());
+    std::copy(U.begin() + ks.first + 1, U.end(), UQ->begin()+ks.first+1+h);
+
+    //auto dim = crv.getDimension();
+    Qw->resize(CP.size() + dim*(p - ks.second + h - 1), 0.0);
+    std::copy(&CP[0], &CP[dim*(ks.first - p)] + dim, &(*Qw)[0]);
+    std::copy(CP.begin() + dim*(ks.first - ks.second), CP.end(), &(*Qw)[dim*(ks.first - ks.second + h)]);
+
+    std::vector<double> tmp(&CP[dim*(ks.first - p)], &CP[dim*(ks.first - ks.second)]+dim);
+    for (int r = 1; r <= h; ++r)
+    {
+        int L = ks.first - p + r;
+        for (int i = 0; i <= p-ks.second - r; ++i)
+        {
+            auto alpha = (u - U[L + i]) / (U[L + i + p - (r - 1)] - U[L + i]);
+            for (int j = 0; j < dim; ++j)
+            {
+                tmp[i*dim+j] = alpha * tmp[(i + 1)*dim+j] + (1 - alpha)*tmp[i*dim+j];
+            }
+        }
+        std::copy(&tmp[0], &tmp[0] + dim, &(*Qw)[dim*L]);
+        std::copy(&tmp[dim*(p-ks.second-(r-1)-1)], &tmp[dim*(p - ks.second - (r - 1)-1)] + dim, 
+            &(*Qw)[dim*(ks.first + h - r -ks.second)]);
+    }
+
+    if (((ks.first - ks.second) - (ks.first - p + h) - 1) > 0)
+    {
+        std::copy(&tmp[dim], &tmp[dim*(p - ks.second - h - 1)] + dim, &(*Qw)[dim*(ks.first - p + h + 1)]);
+    }
+    return 0;
+}
+
 
 

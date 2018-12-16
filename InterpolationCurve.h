@@ -149,7 +149,7 @@ public:
     double curveLength(double a = 0.0, double b = 1.0, stlDVec* polylineCoords = nullptr) const;
 
 
-    stlDVec evaluate(double u);
+    //stlDVec evaluate(double u);
     stlDVec evaluate(const stlDVec& uSeries) const;
     stlDVec linspacePoints(int num) const; // num : equally spaced points number. 
 
