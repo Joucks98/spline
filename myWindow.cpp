@@ -1,3 +1,4 @@
+#include <Windows.h>
 #include "myWindow.h"
 #include "GeometryCalc.h"
 
@@ -131,11 +132,11 @@ void myWindow::myDisplay()
             glEnd();
         }
 
-        if (m_shadowCrv.getReadyFlag()) 
+        if (m_stayCrv.getReadyFlag()) 
         {
-            m_shadowCrv.display(toEdit);
-            m_shadowCrv.showInterPoints(toEdit);
-            //m_shadowCrv.showControlPoints();
+            m_stayCrv.display(toEdit);
+            m_stayCrv.showInterPoints(toEdit);
+            //m_stayCrv.showControlPoints();
         }
         
     }
@@ -178,7 +179,7 @@ void myWindow::myMotion(int x, int y)
 
     if (!toEdit)
     {
-        InterpolationCurve &iCurve = m_crvVec.back();
+        auto &iCurve = m_crvVec.back();
         if (!iCurve.appendable())
             return;
         std::vector<double> copied(iCurve.getInterPointCoords());
@@ -192,7 +193,7 @@ void myWindow::myMotion(int x, int y)
         if (crv_pt_idxs.second >= 0 && crv_pt_idxs.second < m_crvVec[crv_pt_idxs.first].getInterPointNum() 
             && m_crvVec[crv_pt_idxs.first].isInFocus()) // only inFocus can move and remove for to show in stripple line.
         {
-            InterpolationCurve &eCurve = m_crvVec[crv_pt_idxs.first];
+            auto &eCurve = m_crvVec[crv_pt_idxs.first];
             //glutSetCursor(GLUT_CURSOR_CROSSHAIR); // 表示捕捉到有插入点改动
 
             
@@ -269,8 +270,8 @@ void myWindow::myMouse(int button, int state, int x, int y)
             {
                 m_crvVec[crv_pt_idxs.first].setFocus(!m_crvVec[crv_pt_idxs.first].isInFocus());
 
-                m_shadowCrv = m_crvVec[crv_pt_idxs.first];
-                m_shadowCrv.setFocus(false);
+                m_stayCrv = m_crvVec[crv_pt_idxs.first];
+                m_stayCrv.setFocus(false);
 
 
                 chosenPt[0] = m_crvVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second];
@@ -323,18 +324,19 @@ void myWindow::myMouse(int button, int state, int x, int y)
         glutSetCursor(GLUT_CURSOR_RIGHT_ARROW);
         if (toEdit)
         {
-            if (crv_pt_idxs.second != -1 && m_crvVec[crv_pt_idxs.first].isInFocus())
+            if (crv_pt_idxs.second != -1 && curveVec[crv_pt_idxs.first].isInFocus())
             {
+                m_crvVec[crv_pt_idxs.first].setFocus(false);
+                m_stayCrv.clear();
                 m_crvVec[crv_pt_idxs.first].update(m_crvVec[crv_pt_idxs.first].modifyInerPointCoords(crv_pt_idxs.second, qCoord));
                 crv_pt_idxs = make_pair(-1, -1);
-
-                m_shadowCrv.clear();
             }
         }
         else
         {
             // get click point coordinates
             iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.getDimension()));
+
         }
 
     }
@@ -692,17 +694,17 @@ pair<int, int> myWindow::findMoveIndex(const vector<InterpolationCurve>& crvVec,
     std::vector<double> Q = { x, y };
     for (int k = 0; k < crvVec.size(); ++k)
     {
-        const InterpolationCurve& crv = crvVec[k];
+        const auto& crv = crvVec[k];
         if (crv.getInterPointCoords().empty())
             continue;
 
-        const std::vector<double> &iVec = crv.getInterPointCoords();
+        auto &iVec = crv.getInterPointCoords();
 
         for (int i = 0; i < crv.getInterPointNum(); ++i)
         {
             std::vector<double> m{ iVec[i * 2], iVec[i * 2 + 1] };
             double tmp = twoPointDist(&Q[0], &m[0], 2);
-            if (tmp < distMin && tmp < 0.4)
+            if (tmp < distMin && tmp < 0.4) // enough close
             {
                 distMin = tmp;
                 crvId = k;
@@ -733,10 +735,10 @@ void myWindow::offsetCurve(double lamda)
         if (!crv.isInFocus())
             continue;
         
-        if (!m_shadowCrv.getReadyFlag())
+        if (!m_stayCrv.getReadyFlag())
         {
-            m_shadowCrv = crv;
-            m_shadowCrv.setFocus(false);
+            m_stayCrv = crv;
+            m_stayCrv.setFocus(false);
         }
         crv.setOffsetLength(lamda);
 

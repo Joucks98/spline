@@ -209,10 +209,7 @@ void InterpolationCurve::update(CURVESTATE flag)
     
     if (((flag & APPEND) || (flag & ENDMODIFY)))
     {
-        if (getInterPointNum() >= 3)
-            setDerivEnd(true);
-        else
-            setDerivEnd(false);
+        setDerivEnd(getInterPointNum() >= 3);
     }
 
     NurbsBase nurbsTool;
@@ -440,12 +437,13 @@ InterpolationCurve::stlDVec InterpolationCurve::linspacePoints(int num) const
     //std::copy(polylineCoords.end() - m_dimension, polylineCoords.end(), re.end() - m_dimension);
     stlDVec re(num*m_dimension);
     auto stakes = linspace(0, len, num);
-    for (int k = 0; k < num; ++k)
+    for (int k = 0; k < num-1; ++k)
     {
         auto itr = std::lower_bound(tmp.begin(), tmp.end(), stakes[k]);
         auto j = distance(tmp.begin(), itr);
         std::copy(&polylineCoords[j*m_dimension], &polylineCoords[j*m_dimension] + m_dimension, &re[k*m_dimension]);
     }
+    std::copy(polylineCoords.end() - m_dimension, polylineCoords.end(), re.end() - m_dimension);
     return re;
 }
 

@@ -82,5 +82,5 @@ private:
     string coordString;
 
     std::vector<double> m_minDistPt;
-    InterpolationCurve m_shadowCrv;
+    InterpolationCurve m_stayCrv;
 };
