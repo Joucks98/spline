@@ -60,9 +60,9 @@ void myWindow::myDisplay()
     //glDrawPixels(imagewidth, imageheight, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixeldata);
 
 
-    for (int i = 0; i < curveVec.size(); ++i)
+    for (int i = 0; i < m_crvVec.size(); ++i)
     {
-        auto &iCurve = curveVec[i];
+        auto &iCurve = m_crvVec[i];
         if (iCurve.getReadyFlag()) // iCurve has get all control points
         {
             iCurve.display(toEdit);
@@ -104,7 +104,7 @@ void myWindow::myDisplay()
                 XPrintString(coordString.data());
             }
 
-            if (!minDistPt.empty())
+            if (!m_minDistPt.empty())
             {
                 showMinDist();
             }
@@ -113,7 +113,7 @@ void myWindow::myDisplay()
         // highlight picked point
         if (crv_pt_idxs.first >= 0)
         {
-            InterpolationCurve & chosenCrv = curveVec[crv_pt_idxs.first];
+            auto & chosenCrv = m_crvVec[crv_pt_idxs.first];
             glColor3f(0.7f, 0.6f, 1.f);
             glPointSize(20.0);
             glDisable(GL_POINT_SMOOTH);
@@ -131,11 +131,11 @@ void myWindow::myDisplay()
             glEnd();
         }
 
-        if (shadowCrv.getReadyFlag()) 
+        if (m_shadowCrv.getReadyFlag()) 
         {
-            shadowCrv.display(toEdit);
-            shadowCrv.showInterPoints(toEdit);
-            //shadowCrv.showControlPoints();
+            m_shadowCrv.display(toEdit);
+            m_shadowCrv.showInterPoints(toEdit);
+            //m_shadowCrv.showControlPoints();
         }
         
     }
@@ -173,12 +173,12 @@ void myWindow::myMotion(int x, int y)
     gluUnProject(x, viewPort[3] - y, 0, modelMat, projMat, viewPort,
         &qCoord[0], &qCoord[1], &qCoord[2]);
 
-    if (curveVec.empty())
+    if (m_crvVec.empty())
         return;
 
     if (!toEdit)
     {
-        InterpolationCurve &iCurve = curveVec.back();
+        InterpolationCurve &iCurve = m_crvVec.back();
         if (!iCurve.appendable())
             return;
         std::vector<double> copied(iCurve.getInterPointCoords());
@@ -189,10 +189,10 @@ void myWindow::myMotion(int x, int y)
     else
     {
         coordsToStr(x, y, &coordString); // update coordstring in Motion in Edit
-        if (crv_pt_idxs.second >= 0 && crv_pt_idxs.second < curveVec[crv_pt_idxs.first].getInterPointNum() 
-            && curveVec[crv_pt_idxs.first].isInFocus()) // only inFocus can move and remove for to show in stripple line.
+        if (crv_pt_idxs.second >= 0 && crv_pt_idxs.second < m_crvVec[crv_pt_idxs.first].getInterPointNum() 
+            && m_crvVec[crv_pt_idxs.first].isInFocus()) // only inFocus can move and remove for to show in stripple line.
         {
-            InterpolationCurve &eCurve = curveVec[crv_pt_idxs.first];
+            InterpolationCurve &eCurve = m_crvVec[crv_pt_idxs.first];
             //glutSetCursor(GLUT_CURSOR_CROSSHAIR); // 表示捕捉到有插入点改动
 
             
@@ -216,7 +216,7 @@ void myWindow::passiveMotion(int x, int y)
     coordsToStr(x, y, &coordString);
 
     auto coords = strToCoords(coordString);
-    crv_pt_idxs = findMoveIndex(curveVec, coords.first, coords.second);
+    crv_pt_idxs = findMoveIndex(m_crvVec, coords.first, coords.second);
 
     if (toEdit && crv_pt_idxs.second >= 0)
     {
@@ -252,51 +252,47 @@ void myWindow::myMouse(int button, int state, int x, int y)
         &qCoord[0], &qCoord[1], &qCoord[2]);
 
 
-    if (curveVec.empty() || !curveVec.back().appendable())
+    if (m_crvVec.empty() || !m_crvVec.back().appendable())
     {
         // create a new curve
-        curveVec.push_back(InterpolationCurve());
+        m_crvVec.push_back(InterpolationCurve());
     }
 
-    InterpolationCurve& iCurve = curveVec.back();
+    InterpolationCurve& iCurve = m_crvVec.back();
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
     {
-        if (!toEdit)
+        if (toEdit)
         {
-            glutSetCursor(GLUT_CURSOR_FULL_CROSSHAIR/*GLUT_CURSOR_CROSSHAIR*/);
-        }
-        else
-        {
-            //crv_pt_idxs= findMoveIndex(curveVec, qCoord[0], qCoord[1]);
+            //crv_pt_idxs= findMoveIndex(m_crvVec, qCoord[0], qCoord[1]);
 
             if (crv_pt_idxs.first != -1)
             {
-                curveVec[crv_pt_idxs.first].setFocus(!curveVec[crv_pt_idxs.first].isInFocus());
-                
-                shadowCrv = curveVec[crv_pt_idxs.first];
-                shadowCrv.setFocus(false);
-               
+                m_crvVec[crv_pt_idxs.first].setFocus(!m_crvVec[crv_pt_idxs.first].isInFocus());
 
-                chosenPt[0] = curveVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second];
-                chosenPt[1] = curveVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second + 1];
+                m_shadowCrv = m_crvVec[crv_pt_idxs.first];
+                m_shadowCrv.setFocus(false);
+
+
+                chosenPt[0] = m_crvVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second];
+                chosenPt[1] = m_crvVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second + 1];
             }
             else
             {
-                
+
             }
 
 
             int mod = glutGetModifiers();
             if (mod == GLUT_ACTIVE_CTRL && crv_pt_idxs.second > 0) // can't insert to be end.
             {
-                curveVec[crv_pt_idxs.first].update(curveVec[crv_pt_idxs.first].insertInterPointCoords(qCoord, crv_pt_idxs.second));
+                m_crvVec[crv_pt_idxs.first].update(m_crvVec[crv_pt_idxs.first].insertInterPointCoords(qCoord, crv_pt_idxs.second));
             }
 
             if (bCtrl)
             {
-                minDistPt.clear();
+                m_minDistPt.clear();
                 double minDist = MAXLONG;
-                for (auto & m : curveVec)
+                for (auto & m : m_crvVec)
                 {
                     double len = m.curveLength(0, 1);
                     auto cc = m.linspacePoints(7);
@@ -304,16 +300,19 @@ void myWindow::myMouse(int button, int state, int x, int y)
                     if (m.FindNearestCurvePoint(qCoord, &tmp) != 0)
                         continue;
                     double tmpDist = twoPointDist(qCoord, &tmp[0], 2);
-                    if ( tmpDist < minDist)
+                    if (tmpDist < minDist)
                     {
                         minDist = tmpDist;
-                        minDistPt.swap(tmp);
+                        m_minDistPt.swap(tmp);
                     }
-                }                
+                }
                 chosenPt[0] = qCoord[0];
                 chosenPt[1] = qCoord[1];
             }
-            
+        }
+        else
+        {            
+            glutSetCursor(GLUT_CURSOR_FULL_CROSSHAIR/*GLUT_CURSOR_CROSSHAIR*/);
         }
     }
 
@@ -322,23 +321,20 @@ void myWindow::myMouse(int button, int state, int x, int y)
     if (button == GLUT_LEFT_BUTTON && state == GLUT_UP)
     {
         glutSetCursor(GLUT_CURSOR_RIGHT_ARROW);
-        if (!toEdit)
+        if (toEdit)
         {
-            // get click point coordinates
-            iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.getDimension()));
+            if (crv_pt_idxs.second != -1 && m_crvVec[crv_pt_idxs.first].isInFocus())
+            {
+                m_crvVec[crv_pt_idxs.first].update(m_crvVec[crv_pt_idxs.first].modifyInerPointCoords(crv_pt_idxs.second, qCoord));
+                crv_pt_idxs = make_pair(-1, -1);
 
+                m_shadowCrv.clear();
+            }
         }
         else
         {
-            if (crv_pt_idxs.second != -1 && curveVec[crv_pt_idxs.first].isInFocus())
-            {
-                curveVec[crv_pt_idxs.first].update(curveVec[crv_pt_idxs.first].modifyInerPointCoords(crv_pt_idxs.second, qCoord));
-                crv_pt_idxs = make_pair(-1, -1);
-
-                shadowCrv.clear();
-
-            }
-
+            // get click point coordinates
+            iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.getDimension()));
         }
 
     }
@@ -358,9 +354,9 @@ void myWindow::myMouse(int button, int state, int x, int y)
     //    iCurve.setAppendFlag(false);
     //    // create a new curve
     //    // avoid the case : middle button click many times.
-    //    // assure only one void curve append curveVec
+    //    // assure only one void curve append m_crvVec
     //    //if (!iCurve.appendable()) 
-    //    //curveVec.push_back(InterpolationCurve());
+    //    //m_crvVec.push_back(InterpolationCurve());
     //}
 
     myDisplay();
@@ -381,7 +377,7 @@ void myWindow::myKey(unsigned char key, int x, int y)
         break;
     case 'b':
         toBiHe = !toBiHe;
-        for (auto iter = curveVec.begin(); iter != curveVec.end(); ++iter)
+        for (auto iter = m_crvVec.begin(); iter != m_crvVec.end(); ++iter)
         {
             if (iter->isInFocus())
             {
@@ -396,7 +392,7 @@ void myWindow::myKey(unsigned char key, int x, int y)
         break;
     case 'd':
         toShowDer = !toShowDer;
-        /*for (auto iter = curveVec.begin(); iter != curveVec.end(); ++iter)
+        /*for (auto iter = m_crvVec.begin(); iter != m_crvVec.end(); ++iter)
         {
             if (iter->isInFocus())
             {
@@ -429,12 +425,12 @@ void myWindow::myKey(unsigned char key, int x, int y)
         glutPostRedisplay();
         break;
     case 'r':
-        /*if (!curveVec.empty())
-        curveVec.pop_back();*/
-        for (auto iter = curveVec.begin(); iter != curveVec.end(); )
+        /*if (!m_crvVec.empty())
+        m_crvVec.pop_back();*/
+        for (auto iter = m_crvVec.begin(); iter != m_crvVec.end(); )
         {
             if (iter->isInFocus())
-                iter = curveVec.erase(iter);
+                iter = m_crvVec.erase(iter);
             else
                 ++iter;
         }
@@ -491,14 +487,15 @@ void myWindow::mySpecialKey(GLint key, GLint x, GLint y)
 
 void myWindow::idle()
 {
-    if (GetAsyncKeyState(VK_CONTROL)/*glutGetModifiers() == GLUT_ACTIVE_CTRL*/)
-    {
-        bCtrl = true;
-    }
-    else
-    {
-        bCtrl = false;
-    }
+    //if (GetAsyncKeyState(VK_CONTROL)/*glutGetModifiers() == GLUT_ACTIVE_CTRL*/)
+    //{
+    //    bCtrl = true;
+    //}
+    //else
+    //{
+    //    bCtrl = false;
+    //}
+    bCtrl = GetAsyncKeyState(VK_CONTROL) ? true : false;
     glutPostRedisplay();
 }
 
@@ -564,7 +561,7 @@ void myWindow::coordsToStr(int x, int y, string * str)
 
 pair<double, double> myWindow::strToCoords(const string & str)
 {
-    if (str.length() != 0)
+    if (!str.empty())
     {
         char tmpCh[MAX_CHAR];
         strcpy_s(tmpCh, MAX_CHAR, str.data());
@@ -585,23 +582,23 @@ pair<double, double> myWindow::strToCoords(const string & str)
 void myWindow::showMinDist()
 {
     glBegin(GL_LINES);
-    glVertex2d(minDistPt[0], minDistPt[1]);
+    glVertex2d(m_minDistPt[0], m_minDistPt[1]);
     glVertex2d(chosenPt[0], chosenPt[1]);
     glEnd();
     glBegin(GL_POINTS);
-    glVertex2d(minDistPt[0], minDistPt[1]);
+    glVertex2d(m_minDistPt[0], m_minDistPt[1]);
     glVertex2d(chosenPt[0], chosenPt[1]);
     glEnd();
 
     char ch[MAX_CHAR];
-    /*glRasterPos2f((GLfloat)minDistPt[0], (GLfloat)minDistPt[1]);
-    sprintf_s(ch, sizeof(ch), "(%.2f, %.2f)", minDistPt[0], minDistPt[1]);
+    /*glRasterPos2f((GLfloat)m_minDistPt[0], (GLfloat)m_minDistPt[1]);
+    sprintf_s(ch, sizeof(ch), "(%.2f, %.2f)", m_minDistPt[0], m_minDistPt[1]);
     XPrintString(ch);
     glRasterPos2f((GLfloat)chosenPt[0], (GLfloat)chosenPt[1]);
     sprintf_s(ch, sizeof(ch), "(%.2f, %.2f)", chosenPt[0], chosenPt[1]);
     XPrintString(ch);*/
-    glRasterPos2f((GLfloat)((minDistPt[0] + chosenPt[0])*.5f), (GLfloat)((minDistPt[1] + chosenPt[1])*.5f));
-    sprintf_s(ch, sizeof(ch), "%.5f", twoPointDist(&minDistPt[0], &chosenPt[0], 2));
+    glRasterPos2f((GLfloat)((m_minDistPt[0] + chosenPt[0])*.5f), (GLfloat)((m_minDistPt[1] + chosenPt[1])*.5f));
+    sprintf_s(ch, sizeof(ch), "%.5f", twoPointDist(&m_minDistPt[0], &chosenPt[0], 2));
     XPrintString(ch);
 }
 
@@ -731,15 +728,15 @@ pair<int, int> myWindow::findMoveIndex(const vector<InterpolationCurve>& crvVec,
 void myWindow::offsetCurve(double lamda)
 {
     //const InterpolationCurve* crv = nullptr;
-    for (auto& crv : curveVec)
+    for (auto& crv : m_crvVec)
     {
         if (!crv.isInFocus())
             continue;
         
-        if (!shadowCrv.getReadyFlag())
+        if (!m_shadowCrv.getReadyFlag())
         {
-            shadowCrv = crv;
-            shadowCrv.setFocus(false);
+            m_shadowCrv = crv;
+            m_shadowCrv.setFocus(false);
         }
         crv.setOffsetLength(lamda);
 

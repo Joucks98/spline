@@ -62,7 +62,7 @@ private:
 
     GLuint TextFont;
 
-    vector<InterpolationCurve> curveVec;
+    vector<InterpolationCurve> m_crvVec;
     GLint imagewidth;
     GLint imageheight;
     GLint pixellength;
@@ -81,6 +81,6 @@ private:
     std::vector<double> chosenPt, hoverPt;
     string coordString;
 
-    std::vector<double> minDistPt;
-    InterpolationCurve shadowCrv;
+    std::vector<double> m_minDistPt;
+    InterpolationCurve m_shadowCrv;
 };
