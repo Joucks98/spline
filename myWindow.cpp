@@ -204,7 +204,7 @@ void myWindow::myMotion(int x, int y)
         if (!iCurve.appendable())
             return;
         std::vector<double> copied(iCurve.getInterPointCoords());
-        iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.getDimension()));
+        iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.dimension()));
         myDisplay(); // this line should be retain for display instantly
         iCurve.update(iCurve.setInterPointCoords(std::move(copied)));  // should restore for the true insert point.
     }
@@ -331,7 +331,7 @@ void myWindow::myMouse(int button, int state, int x, int y)
         else
         {
             // get click point coordinates
-            iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.getDimension()));
+            iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.dimension()));
         }
 
     }

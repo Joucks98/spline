@@ -83,17 +83,6 @@ void InterpolationCurve::setDerivEnd(bool setFlag, const stlDVec* derVec)
     }    
 }
 
-void InterpolationCurve::setDegree(int d)
-{
-    assert(d > 0);
-    m_degree = d;
-    // clear nurbs data to restart
-    m_controlPointCoordVec.clear();
-    m_knotVec.clear();
-    readyFlag = false;
-    isAppend = true;
-}
-
 CURVESTATE InterpolationCurve::setInterPointCoords(stlDVec && a)
 {
     CURVESTATE flag = UNCHANGE;
@@ -554,7 +543,7 @@ static double NewtonMethod(const InterpolationCurve& crv, double u, const double
     NurbsBase nurbsTool;
     int num = 500;
 
-    int n = crv.getDimension();
+    int n = crv.dimension();
 
     VectorXd Q(n); 
     for (int i = 0; i < n; ++i)
@@ -764,4 +753,3 @@ void InterpolationCurve::drawPoint(stlDVec & vec, int dim)
 //    uniformVec[stepNum] = 1;
 //    return true;
 //}
-

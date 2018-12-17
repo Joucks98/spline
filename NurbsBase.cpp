@@ -73,7 +73,7 @@ int NurbsBase::generateUparameter(InterpolationCurve* crv)
     if (num < 2)
         return -1;
     std::vector<double> uVec(num);
-    generateUparameter(&(crv->getInterPointCoords()[0]), num, crv->getDimension(), &uVec[0]);
+    generateUparameter(&(crv->getInterPointCoords()[0]), num, crv->dimension(), &uVec[0]);
     crv->setUparam(std::move(uVec));
     return 0;
 }
@@ -119,17 +119,17 @@ int NurbsBase::generateCrvKnots(InterpolationCurve* crv)
     const std::vector<double>& uVec = (*crv).getUparam();
     if (uVec.size() < 2)
         return -1;
-    std::vector<double> knotVecTmp(uVec.size() + (*crv).getDegree() + 1);
+    std::vector<double> knotVecTmp(uVec.size() + (*crv).p() + 1);
     if ((*crv).getDerivFlag())
-        knotVecTmp.resize(uVec.size() + (*crv).getDegree() + 3);
-    if ((*crv).getDegree() == 3 && (*crv).getDerivFlag())
+        knotVecTmp.resize(uVec.size() + (*crv).p() + 3);
+    if ((*crv).p() == 3 && (*crv).getDerivFlag())
     {
-        std::copy(uVec.begin(), uVec.end(), knotVecTmp.begin() + (*crv).getDegree());
+        std::copy(uVec.begin(), uVec.end(), knotVecTmp.begin() + (*crv).p());
         knotVecTmp[knotVecTmp.size() - 1] = knotVecTmp[knotVecTmp.size() - 2] = knotVecTmp[knotVecTmp.size() - 3] = 1;
     }
     else
     {
-        if (generateKnots(&uVec[0], (int)uVec.size(), (*crv).getDegree() + 1, &knotVecTmp[0], (*crv).getDerivFlag()))
+        if (generateKnots(&uVec[0], (int)uVec.size(), (*crv).p() + 1, &knotVecTmp[0], (*crv).getDerivFlag()))
             return -1;
     }    
 
@@ -357,14 +357,14 @@ int NurbsBase::generateCrvControlPoints(InterpolationCurve * crv, bool tri)
     if (tri)
     {
         const std::vector<double>& QCoords = (*crv).getInterPointCoords();
-        int dim = crv->getDimension();
-        if (crv->getDegree() == 1)
+        int dim = crv->dimension();
+        if (crv->p() == 1)
         {
             std::vector<double> tmp(QCoords);
             crv->setControlPointCoords(std::move(tmp));
             return 0;
         }
-        else if (crv->getDegree() == 2)
+        else if (crv->p() == 2)
         {
             const std::vector<double>& uVec = (*crv).getUparam();
             std::vector<double> N;
@@ -431,14 +431,14 @@ int NurbsBase::generateCrvControlPoints(InterpolationCurve * crv, bool tri)
         cout << "knots are:";
         cout << knotVec;
         std::vector<double> A;        
-        if (constructMatrix(uVec, knotVec, (*crv).getDegree(), &A, (*crv).getDerivFlag()) == -1)
+        if (constructMatrix(uVec, knotVec, (*crv).p(), &A, (*crv).getDerivFlag()) == -1)
         {
             cerr << "matrix construct error" << endl;
             flag = -1;
         }
 
         int sizeA = (int)sqrt(A.size());
-        int dim = (*crv).getDimension();
+        int dim = (*crv).dimension();
         std::vector<double> B(sizeA * dim);
 
         std::vector<double> temp1, temp2;
@@ -446,9 +446,9 @@ int NurbsBase::generateCrvControlPoints(InterpolationCurve * crv, bool tri)
         {
             const std::vector<double>& derivVec = (*crv).getEndDers();
             size_t m = knotVec.size() - 1;
-            if (m + 1 == uVec.size() + (*crv).getDegree() + 3) // check knotArr
+            if (m + 1 == uVec.size() + (*crv).p() + 3) // check knotArr
             {
-                int p = (*crv).getDegree();
+                int p = (*crv).p();
                 double tmp1 = knotVec[p + 1] / p;
                 double tmp2 = (1 - knotVec[m - p - 1]) / p;
 
@@ -506,8 +506,8 @@ int NurbsBase::plotNurbs(const InterpolationCurve & crv)
     unique_ptr<GLfloat[]> controlPoints(new GLfloat[crv.getControlPointNum() * 3]);
     for (int k = 0; k < crv.getControlPointNum(); ++k)
     {
-        controlPoints[3 * k] = (GLfloat)crv.getControlPointCoords()[crv.getDimension()*k + 0];
-        controlPoints[3 * k + 1] = (GLfloat)crv.getControlPointCoords()[crv.getDimension()*k + 1];
+        controlPoints[3 * k] = (GLfloat)crv.getControlPointCoords()[crv.dimension()*k + 0];
+        controlPoints[3 * k + 1] = (GLfloat)crv.getControlPointCoords()[crv.dimension()*k + 1];
         controlPoints[3 * k + 2] = 1.0f;
     }
     unique_ptr<GLfloat[]> knots(new GLfloat[crv.getKnots().size()]);
@@ -515,7 +515,7 @@ int NurbsBase::plotNurbs(const InterpolationCurve & crv)
         knots[k] = (GLfloat)crv.getKnots()[k];
 
     gluBeginCurve(ptrNurbs);
-    gluNurbsCurve(ptrNurbs, (GLint)crv.getKnots().size(), knots.get(), 3, controlPoints.get(), crv.getDegree() + 1, GL_MAP1_VERTEX_3);
+    gluNurbsCurve(ptrNurbs, (GLint)crv.getKnots().size(), knots.get(), 3, controlPoints.get(), crv.p() + 1, GL_MAP1_VERTEX_3);
     gluEndCurve(ptrNurbs);
 
     return 0;
@@ -709,7 +709,7 @@ void NurbsBase::curveDer_1(const InterpolationCurve & crv, double u, int d, std:
         return;
     }       
     std::vector<double> derTmp;
-    curveDer_1(crv.getDegree(), crv.getKnots(), crv.getControlPointCoords(), u, d, crv.getDimension(), &derTmp);
+    curveDer_1(crv.p(), crv.getKnots(), crv.getControlPointCoords(), u, d, crv.dimension(), &derTmp);
     der->swap(derTmp);
 }
 
@@ -722,7 +722,7 @@ int NurbsBase::evaluate(const InterpolationCurve & crv, double u, std::vector<do
         return 1;
     }
     val->clear();
-    /*int p = crv.getDegree();
+    /*int p = crv.p();
     int idx = findSpan(p, u, crv.getKnots());
     std::vector<double> N(p + 1);
     basisFuns(idx, p, u, crv.getKnots(), &N);
@@ -744,7 +744,7 @@ std::vector<double> NurbsBase::deBoor(const InterpolationCurve & crv, double u)
 {
     assert(u >= 0 && u <= 1);
     //u = .6;
-    int p = crv.getDegree();
+    int p = crv.p();
     //int p = 2;
     auto& U = crv.getKnots();
     //vector<double> U = { 0, 0, 0, .2, .4, .6, .8, .8, 1, 1, 1 };
@@ -763,7 +763,7 @@ std::vector<double> NurbsBase::deBoor(const InterpolationCurve & crv, double u)
 
     int n = crv.getControlPointNum() - 1;
     //int n = U.size() - 1 - p - 1;
-    int dim = crv.getDimension();
+    int dim = crv.dimension();
     //int dim = 2;
 
     std::vector<double> UQ;
@@ -817,20 +817,17 @@ int NurbsBase::curveKnotIns(
     assert(Qw != nullptr);
     UQ->clear();
     Qw->clear();
-    //auto p = crv.getDegree();
-    //auto& U = crv.getKnots();
+
     auto ks = findSpanMult(p, u, U);
     if (h <= 0 || h + ks.second > p)
     {
         return -1;
     }
-    //auto& CP = crv.getControlPointCoords();
 
     UQ->resize(U.size() + h, u);
     std::copy(U.begin(), U.begin() + ks.first + 1, UQ->begin());
     std::copy(U.begin() + ks.first + 1, U.end(), UQ->begin()+ks.first+1+h);
 
-    //auto dim = crv.getDimension();
     Qw->resize(dim*(ks.first - p+1) 
         + dim*(p - ks.second + h - 1) 
         + distance(CP.begin() + dim*(ks.first - ks.second), CP.end()), 0.0);
