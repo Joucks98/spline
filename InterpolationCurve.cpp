@@ -14,9 +14,6 @@
 using namespace Eigen;
 using namespace Interpolation;
 
-//InterpolationCurve::stlDVec InterpolationCurve::uniformVec;
-//bool InterpolationCurve::_init = InterpolationCurve::init(1000);
-
 double Interpolation::norm2(const double v[], int dim)
 {
     if (v == nullptr)
@@ -744,12 +741,3 @@ void InterpolationCurve::drawPoint(stlDVec & vec, int dim)
             glVertex3d(vec[3 * i], vec[3 * i + 1], vec[3 * i + 2]);
     }
 }
-
-//bool InterpolationCurve::init(int stepNum)
-//{
-//    double step = 1.0 / stepNum;
-//    uniformVec.resize(stepNum + 1);
-//    std::generate(uniformVec.begin(), uniformVec.end()-1, [re = 0.0, &step]() mutable { return re+=step; });
-//    uniformVec[stepNum] = 1;
-//    return true;
-//}

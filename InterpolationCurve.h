@@ -209,15 +209,12 @@ public:
     void setOffsetLength(double l);
 private:
     void drawPoint(stlDVec & vec, int dim);
-    //static bool init(int num);
 
     bool readyFlag, isAppend, derivateIsSet, inFocus, closeState;
     double m_offsetLen;
     stlDVec m_uParam;
     stlDVec m_interPointCoordVec;
     stlDVec m_endDerVec;
-    //static stlDVec uniformVec;
-    //static bool _init;    
 };
 
 #endif // !__INTERPOLATIONCURVE_H__
