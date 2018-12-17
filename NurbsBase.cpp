@@ -139,7 +139,7 @@ int NurbsBase::generateCrvKnots(InterpolationCurve* crv)
 
 double NurbsBase::oneBasicFuns(int p, int m, const double U[], int i, double u)
 {    
-    double *N = new double[p + 1];
+    unique_ptr<double[]> N(new double[p + 1]);
     double saved, temp;
     int j, k;
     double Uleft, Uright;
@@ -194,9 +194,7 @@ double NurbsBase::oneBasicFuns(int p, int m, const double U[], int i, double u)
             }
         }
     }
-    temp = N[0];
-    delete[] N;
-    return temp;
+    return N[0];
 }
 
 int NurbsBase::findSpan(int p, double u, const std::vector<double>& U)
@@ -505,26 +503,21 @@ int NurbsBase::plotNurbs(const InterpolationCurve & crv)
 {
     if (!crv.checkKnotNum())
         return -1;
-    GLfloat *controlPoints = new GLfloat[crv.getControlPointNum() * 3];
+    unique_ptr<GLfloat[]> controlPoints(new GLfloat[crv.getControlPointNum() * 3]);
     for (int k = 0; k < crv.getControlPointNum(); ++k)
     {
         controlPoints[3 * k] = (GLfloat)crv.getControlPointCoords()[crv.getDimension()*k + 0];
         controlPoints[3 * k + 1] = (GLfloat)crv.getControlPointCoords()[crv.getDimension()*k + 1];
         controlPoints[3 * k + 2] = 1.0f;
     }
-    GLfloat* knots = new GLfloat[crv.getKnots().size()];
+    unique_ptr<GLfloat[]> knots(new GLfloat[crv.getKnots().size()]);
     for (int k = 0; k < crv.getKnots().size(); ++k)
         knots[k] = (GLfloat)crv.getKnots()[k];
 
     gluBeginCurve(ptrNurbs);
-    gluNurbsCurve(ptrNurbs, (GLint)crv.getKnots().size(), knots, 3, controlPoints, crv.getDegree() + 1, GL_MAP1_VERTEX_3);
+    gluNurbsCurve(ptrNurbs, (GLint)crv.getKnots().size(), knots.get(), 3, controlPoints.get(), crv.getDegree() + 1, GL_MAP1_VERTEX_3);
     gluEndCurve(ptrNurbs);
 
-    delete[] knots;
-    knots = nullptr;
-    delete[] controlPoints;
-    controlPoints = nullptr;
-    
     return 0;
 }
 
@@ -838,7 +831,9 @@ int NurbsBase::curveKnotIns(
     std::copy(U.begin() + ks.first + 1, U.end(), UQ->begin()+ks.first+1+h);
 
     //auto dim = crv.getDimension();
-    Qw->resize(CP.size() + dim*(p - ks.second + h - 1), 0.0);
+    Qw->resize(dim*(ks.first - p+1) 
+        + dim*(p - ks.second + h - 1) 
+        + distance(CP.begin() + dim*(ks.first - ks.second), CP.end()), 0.0);
     std::copy(&CP[0], &CP[dim*(ks.first - p)] + dim, &(*Qw)[0]);
     std::copy(CP.begin() + dim*(ks.first - ks.second), CP.end(), &(*Qw)[dim*(ks.first - ks.second + h)]);
 

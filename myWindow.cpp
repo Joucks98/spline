@@ -7,7 +7,7 @@
 
 //myWindow* myWindow::pWindow = nullptr;
 
-myWindow::myWindow():chosenPt(2)
+myWindow::myWindow():m_chosenPt(2)
 {
     //pWindow = this;
     readImageFile();
@@ -122,13 +122,13 @@ void myWindow::myDisplay()
             glVertex2d(chosenCrv.getInterPointCoords()[2 * crv_pt_idxs.second], chosenCrv.getInterPointCoords()[2 * crv_pt_idxs.second + 1]);
             glEnd();
         }
-        if (!hoverPt.empty())
+        if (!m_hoverPt.empty())
         {
             glColor3f(1.0f, 1.f, 1.f);
             glPointSize(5.0);
             glDisable(GL_POINT_SMOOTH);
             glBegin(GL_POINTS);
-            glVertex2d(hoverPt[0], hoverPt[1]);
+            glVertex2d(m_hoverPt[0], m_hoverPt[1]);
             glEnd();
         }
 
@@ -177,27 +177,15 @@ void myWindow::myMotion(int x, int y)
     if (m_crvVec.empty())
         return;
 
-    if (!toEdit)
-    {
-        auto &iCurve = m_crvVec.back();
-        if (!iCurve.appendable())
-            return;
-        std::vector<double> copied(iCurve.getInterPointCoords());
-        iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.getDimension()));
-        myDisplay(); // this line should be retain for display instantly
-        iCurve.update(iCurve.setInterPointCoords(std::move(copied)));  // should restore for the true insert point.
-    }
-    else
+    if (toEdit)
     {
         coordsToStr(x, y, &coordString); // update coordstring in Motion in Edit
         if (crv_pt_idxs.second >= 0 && crv_pt_idxs.second < m_crvVec[crv_pt_idxs.first].getInterPointNum() 
             && m_crvVec[crv_pt_idxs.first].isInFocus()) // only inFocus can move and remove for to show in stripple line.
         {
             auto &eCurve = m_crvVec[crv_pt_idxs.first];
-            //glutSetCursor(GLUT_CURSOR_CROSSHAIR); // 表示捕捉到有插入点改动
-
-            
-            if ((eCurve.getInterPointNum() > 1) && (twoPointDist(&chosenPt[0], qCoord, 2) < 20.0 /*/ (eCurve.getInterPointNum() - 1)*/))
+            //glutSetCursor(GLUT_CURSOR_CROSSHAIR); // 表示捕捉到有插入点改动            
+            if ((eCurve.getInterPointNum() > 1) && (twoPointDist(&m_chosenPt[0], qCoord, 2) < 20.0 /*/ (eCurve.getInterPointNum() - 1)*/))
             {
                 eCurve.update(eCurve.modifyInerPointCoords(crv_pt_idxs.second, qCoord));
             }
@@ -209,6 +197,16 @@ void myWindow::myMotion(int x, int y)
             myDisplay();
         }
         //glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+    }
+    else
+    {
+        auto &iCurve = m_crvVec.back();
+        if (!iCurve.appendable())
+            return;
+        std::vector<double> copied(iCurve.getInterPointCoords());
+        iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.getDimension()));
+        myDisplay(); // this line should be retain for display instantly
+        iCurve.update(iCurve.setInterPointCoords(std::move(copied)));  // should restore for the true insert point.
     }
 }
 
@@ -274,8 +272,8 @@ void myWindow::myMouse(int button, int state, int x, int y)
                 m_stayCrv.setFocus(false);
 
 
-                chosenPt[0] = m_crvVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second];
-                chosenPt[1] = m_crvVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second + 1];
+                m_chosenPt[0] = m_crvVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second];
+                m_chosenPt[1] = m_crvVec[crv_pt_idxs.first].getInterPointCoords()[2 * crv_pt_idxs.second + 1];
             }
             else
             {
@@ -295,8 +293,6 @@ void myWindow::myMouse(int button, int state, int x, int y)
                 double minDist = MAXLONG;
                 for (auto & m : m_crvVec)
                 {
-                    double len = m.curveLength(0, 1);
-                    auto cc = m.linspacePoints(7);
                     std::vector<double> tmp;
                     if (m.FindNearestCurvePoint(qCoord, &tmp) != 0)
                         continue;
@@ -307,8 +303,8 @@ void myWindow::myMouse(int button, int state, int x, int y)
                         m_minDistPt.swap(tmp);
                     }
                 }
-                chosenPt[0] = qCoord[0];
-                chosenPt[1] = qCoord[1];
+                m_chosenPt[0] = qCoord[0];
+                m_chosenPt[1] = qCoord[1];
             }
         }
         else
@@ -336,7 +332,6 @@ void myWindow::myMouse(int button, int state, int x, int y)
         {
             // get click point coordinates
             iCurve.update(iCurve.addInterPointCoords(qCoord, iCurve.getDimension()));
-
         }
 
     }
@@ -585,22 +580,22 @@ void myWindow::showMinDist()
 {
     glBegin(GL_LINES);
     glVertex2d(m_minDistPt[0], m_minDistPt[1]);
-    glVertex2d(chosenPt[0], chosenPt[1]);
+    glVertex2d(m_chosenPt[0], m_chosenPt[1]);
     glEnd();
     glBegin(GL_POINTS);
     glVertex2d(m_minDistPt[0], m_minDistPt[1]);
-    glVertex2d(chosenPt[0], chosenPt[1]);
+    glVertex2d(m_chosenPt[0], m_chosenPt[1]);
     glEnd();
 
     char ch[MAX_CHAR];
     /*glRasterPos2f((GLfloat)m_minDistPt[0], (GLfloat)m_minDistPt[1]);
     sprintf_s(ch, sizeof(ch), "(%.2f, %.2f)", m_minDistPt[0], m_minDistPt[1]);
     XPrintString(ch);
-    glRasterPos2f((GLfloat)chosenPt[0], (GLfloat)chosenPt[1]);
-    sprintf_s(ch, sizeof(ch), "(%.2f, %.2f)", chosenPt[0], chosenPt[1]);
+    glRasterPos2f((GLfloat)m_chosenPt[0], (GLfloat)m_chosenPt[1]);
+    sprintf_s(ch, sizeof(ch), "(%.2f, %.2f)", m_chosenPt[0], m_chosenPt[1]);
     XPrintString(ch);*/
-    glRasterPos2f((GLfloat)((m_minDistPt[0] + chosenPt[0])*.5f), (GLfloat)((m_minDistPt[1] + chosenPt[1])*.5f));
-    sprintf_s(ch, sizeof(ch), "%.5f", twoPointDist(&m_minDistPt[0], &chosenPt[0], 2));
+    glRasterPos2f((GLfloat)((m_minDistPt[0] + m_chosenPt[0])*.5f), (GLfloat)((m_minDistPt[1] + m_chosenPt[1])*.5f));
+    sprintf_s(ch, sizeof(ch), "%.5f", twoPointDist(&m_minDistPt[0], &m_chosenPt[0], 2));
     XPrintString(ch);
 }
 
@@ -716,11 +711,11 @@ pair<int, int> myWindow::findMoveIndex(const vector<InterpolationCurve>& crvVec,
         //if (!crvPt.empty() && twoPointDist(&Q[0], &crvPt[0], 2) < .3)
         //{
         //    //const_cast<InterpolationCurve&>(crv).setFocus(1);
-        //    hoverPt.swap(crvPt);
+        //    m_hoverPt.swap(crvPt);
         //}
         //else
         //{
-        //    hoverPt.clear();
+        //    m_hoverPt.clear();
         //}
     }
 

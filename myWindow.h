@@ -78,7 +78,7 @@ private:
 
     pair<int, int> crv_pt_idxs = make_pair(-1, -1); // first indicate curveid, second indicate pointid.
 
-    std::vector<double> chosenPt, hoverPt;
+    std::vector<double> m_chosenPt, m_hoverPt;
     string coordString;
 
     std::vector<double> m_minDistPt;
