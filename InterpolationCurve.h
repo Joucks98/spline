@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <vector>
 #include <iostream>
+#include "BCurve.h"
+
 using std::vector;
 
 typedef enum
@@ -21,106 +23,14 @@ namespace Interpolation
     double norm2(const double v[], int dim);
 }
 
-class BCurve
-{
-public:
-    typedef std::vector<double> stlDVec;
-    BCurve(int dim = 2, int p = 0)
-        :m_dimension(dim), m_degree(p)
-    {}
-    BCurve(int dim, int p, const double* uArr, const double* cptArr, int cptNum)
-        :m_dimension(dim), m_degree(p)        
-    {
-        m_knotVec.assign(uArr, uArr + p + cptNum + 1);
-        m_controlPointCoordVec.assign(cptArr, cptArr + dim * cptNum);
-    }
-    BCurve(int dim, int p, stlDVec&& U, stlDVec&& CP)
-        :m_dimension(dim), m_degree(p), m_knotVec(U), m_controlPointCoordVec(CP)
-    {}
-    BCurve(const BCurve&) = default;
-    BCurve& operator=(const BCurve&) = default;
-    virtual ~BCurve() {}
-
-    bool checkKnotNum() const
-    {
-        return m_knotVec.size() == getControlPointNum() + m_degree + 1;
-    }
-
-    // m_dimension operator
-    int dimension() const { return m_dimension; }
-
-    // m_degree operator
-    int p() const { return m_degree; }
-    void changeP(int d)
-    {
-        assert(d >= 0);
-        if (m_degree != d)
-        {
-            m_degree = d;
-            clear();
-        }
-    }
-    virtual void clear()
-    {
-        m_knotVec.clear();
-        m_controlPointCoordVec.clear();
-    }
-    
-    // knots operator
-    const stlDVec& getKnots() const { return m_knotVec; }
-    void setKnots(stlDVec && a) { m_knotVec = std::move(a); }
-
-    // control point operator
-    const stlDVec& getControlPointCoords() const
-    {
-        return m_controlPointCoordVec;
-    }
-    void setControlPointCoords(stlDVec && a)
-    {
-        m_controlPointCoordVec = std::move(a);
-    }
-    int getControlPointNum() const
-    {
-        return (int)m_controlPointCoordVec.size() / m_dimension;
-    }
-protected:
-    int m_dimension;
-    int m_degree;
-    stlDVec m_knotVec;
-    stlDVec m_controlPointCoordVec;
-};
 
 class InterpolationCurve : public BCurve
 {
-    //typedef std::vector<double> stlDVec;
 public:
-    InterpolationCurve(): BCurve(),
-                          readyFlag(0), isAppend(1), 
-                          derivateIsSet(0), inFocus(0), closeState(0), m_offsetLen(0)
-    {}
-    InterpolationCurve(int deg, int dim = 2) 
-        : BCurve(dim, deg),
-          readyFlag(0), 
-          isAppend(1),
-          derivateIsSet(0), 
-          inFocus(0), 
-          closeState(0),
-          m_offsetLen(0)
-                                               
-    {
-        
-        //ptrNurbs = gluNewNurbsRenderer();//创建NURBS对象ptrNurbs
-        //gluNurbsProperty(ptrNurbs, GLU_SAMPLING_TOLERANCE, 25);
-        //gluNurbsProperty(ptrNurbs, GLU_DISPLAY_MODE, GLU_OUTLINE_POLYGON);//把表面渲染为多边形 
-    }
-    ~InterpolationCurve()
-    {
-       /*if(ptrNurbs != nullptr)
-       {
-           gluDeleteNurbsRenderer(ptrNurbs);
-            ptrNurbs = nullptr;
-       }*/           
-    }
+    InterpolationCurve();
+    InterpolationCurve(int deg, int dim = 2);
+    
+    ~InterpolationCurve() {}
 
     bool getReadyFlag()
     {
@@ -144,7 +54,6 @@ public:
     // m_uParam operator
     const stlDVec& getUparam() const { return m_uParam; }
     void setUparam(stlDVec&& u) { m_uParam = std::move(u); }
-
 
     // inter point operator
     const stlDVec& getInterPointCoords() const
@@ -190,6 +99,8 @@ public:
     void getOffsetPt(double offsetRatio, double u, stlDVec* offsetPt) const;
     void getOffsetPt(double offsetRatio, const double u[], int num, stlDVec* offsetPts) const;
     void setOffsetLength(double l);
+
+    BCurve bCurve() const;
 private:
     void drawPoint(stlDVec & vec, int dim);
 

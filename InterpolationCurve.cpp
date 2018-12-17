@@ -9,6 +9,7 @@
 #include "InterpolationCurve.h"
 #include "GeometryCalc.h"
 
+
 #define EPS 1e-12
 
 using namespace Eigen;
@@ -21,6 +22,28 @@ double Interpolation::norm2(const double v[], int dim)
     return sqrt(std::inner_product(v, v+dim, v, 0.0));
 }
 
+
+InterpolationCurve::InterpolationCurve()
+    : BCurve(),
+    readyFlag(0), isAppend(1),
+    derivateIsSet(0), inFocus(0), closeState(0), m_offsetLen(0)
+{}
+
+InterpolationCurve::InterpolationCurve(int deg, int dim)
+    : BCurve(dim, deg),
+    readyFlag(0),
+    isAppend(1),
+    derivateIsSet(0),
+    inFocus(0),
+    closeState(0),
+    m_offsetLen(0)
+
+{
+
+    //ptrNurbs = gluNewNurbsRenderer();//创建NURBS对象ptrNurbs
+    //gluNurbsProperty(ptrNurbs, GLU_SAMPLING_TOLERANCE, 25);
+    //gluNurbsProperty(ptrNurbs, GLU_DISPLAY_MODE, GLU_OUTLINE_POLYGON);//把表面渲染为多边形 
+}
 
 void InterpolationCurve::setDerivEnd(bool setFlag, const stlDVec* derVec)
 {
@@ -718,6 +741,11 @@ void InterpolationCurve::setOffsetLength(double l)
 {
     m_offsetLen = l;
     return;
+}
+
+BCurve InterpolationCurve::bCurve() const
+{
+    return BCurve(m_dimension, m_degree, &m_knotVec[0], &m_controlPointCoordVec[0], getControlPointNum());
 }
 
 void InterpolationCurve::drawPoint(stlDVec & vec, int dim)
