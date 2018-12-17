@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <vector>
 #include <iostream>
-#include "BCurve.h"
+#include "BSpline.h"
 
 using std::vector;
 
@@ -24,7 +24,7 @@ namespace Interpolation
 }
 
 
-class InterpolationCurve : public BCurve
+class InterpolationCurve : public BSpline
 {
 public:
     InterpolationCurve();
@@ -100,7 +100,7 @@ public:
     void getOffsetPt(double offsetRatio, const double u[], int num, stlDVec* offsetPts) const;
     void setOffsetLength(double l);
 
-    BCurve bCurve() const;
+    BSpline bCurve() const;
 private:
     void drawPoint(stlDVec & vec, int dim);
 

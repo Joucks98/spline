@@ -24,13 +24,13 @@ double Interpolation::norm2(const double v[], int dim)
 
 
 InterpolationCurve::InterpolationCurve()
-    : BCurve(),
+    : BSpline(),
     readyFlag(0), isAppend(1),
     derivateIsSet(0), inFocus(0), closeState(0), m_offsetLen(0)
 {}
 
 InterpolationCurve::InterpolationCurve(int deg, int dim)
-    : BCurve(dim, deg),
+    : BSpline(dim, deg),
     readyFlag(0),
     isAppend(1),
     derivateIsSet(0),
@@ -302,7 +302,7 @@ int InterpolationCurve::display(int modeType)
 
 void InterpolationCurve::clear()
 {
-    BCurve::clear();
+    BSpline::clear();
     m_controlPointCoordVec.clear();
     m_endDerVec.clear();
     readyFlag = false;
@@ -743,9 +743,9 @@ void InterpolationCurve::setOffsetLength(double l)
     return;
 }
 
-BCurve InterpolationCurve::bCurve() const
+BSpline InterpolationCurve::bCurve() const
 {
-    return BCurve(m_dimension, m_degree, &m_knotVec[0], &m_controlPointCoordVec[0], getControlPointNum());
+    return BSpline(m_dimension, m_degree, &m_knotVec[0], &m_controlPointCoordVec[0], getControlPointNum());
 }
 
 void InterpolationCurve::drawPoint(stlDVec & vec, int dim)

@@ -6,7 +6,7 @@
 #include<Windows.h>
 #include<gl/GLU.h>
 
-class BCurve;
+class BSpline;
 class InterpolationCurve;
 //class GLUnurbsObj;
 class NurbsBase
@@ -65,7 +65,7 @@ public:
                         int p, std::vector<double>* A, bool extend = false);
 
     int generateCrvControlPoints(InterpolationCurve* crv, bool tri = true);
-    int plotNurbs(const BCurve& crv);
+    int plotNurbs(const BSpline& crv);
 
     static int doolittleLU(double A[],int rowColnum);
     /*input :A is LU result matrix, B each column is b 
@@ -87,7 +87,7 @@ public:
     void curveDer_1(const InterpolationCurve& crv, double u, int d, std::vector<double>* der);
     
     int evaluate(const InterpolationCurve& crv, double u, std::vector<double>* val);
-    static std::vector<double> deBoor(const BCurve& crv, double u);
+    static std::vector<double> deBoor(const BSpline& crv, double u);
     static int curveKnotIns(
         const std::vector<double>& U, const std::vector<double>& CP, int dim, int p, double u, int h,
         std::vector<double>* UQ, std::vector<double>* Qw);
