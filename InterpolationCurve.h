@@ -41,9 +41,14 @@ public:
     BCurve& operator=(const BCurve&) = default;
     virtual ~BCurve() {}
 
+    bool checkKnotNum() const
+    {
+        return m_knotVec.size() == getControlPointNum() + m_degree + 1;
+    }
 
     // m_dimension operator
     int dimension() const { return m_dimension; }
+
     // m_degree operator
     int p() const { return m_degree; }
     void changeP(int d)
@@ -55,10 +60,28 @@ public:
             clear();
         }
     }
-    void clear()
+    virtual void clear()
     {
         m_knotVec.clear();
         m_controlPointCoordVec.clear();
+    }
+    
+    // knots operator
+    const stlDVec& getKnots() const { return m_knotVec; }
+    void setKnots(stlDVec && a) { m_knotVec = std::move(a); }
+
+    // control point operator
+    const stlDVec& getControlPointCoords() const
+    {
+        return m_controlPointCoordVec;
+    }
+    void setControlPointCoords(stlDVec && a)
+    {
+        m_controlPointCoordVec = std::move(a);
+    }
+    int getControlPointNum() const
+    {
+        return (int)m_controlPointCoordVec.size() / m_dimension;
     }
 protected:
     int m_dimension;
@@ -118,36 +141,9 @@ public:
     const stlDVec& getEndDers() { return m_endDerVec; }
     void setDerivEnd(bool setFlag, const stlDVec* derVec = nullptr);
 
-    void setDegree(int d) {
-        changeP(d);
-        if (d != m_degree)
-        {
-            readyFlag = false;
-            isAppend = true;
-        }
-    }
-
     // m_uParam operator
     const stlDVec& getUparam() const { return m_uParam; }
     void setUparam(stlDVec&& u) { m_uParam = std::move(u); }
-
-    // knots operator
-    const stlDVec& getKnots() const { return m_knotVec; }
-    void setKnots(stlDVec && a) { m_knotVec = std::move(a);}
-    /*void setKnots(const stlDVec & a)
-    {
-        m_knotVec = a;
-    }*/
-    bool checkKnotNum() const
-    {
-        return m_knotVec.size() == getControlPointNum() + m_degree + 1;
-    }
-    
-    bool isKnotReady() const
-    {
-        return m_knotVec.size() == getControlPointNum() + m_degree + 1;
-    }
-
 
 
     // inter point operator
@@ -171,23 +167,10 @@ public:
 
     void update(CURVESTATE flag);
 
-    // control point operator
-
-    const stlDVec& getControlPointCoords() const
-    {
-        return m_controlPointCoordVec;
-    }
-    void setControlPointCoords(stlDVec && a)
-    {
-        m_controlPointCoordVec = std::move(a);
-    }
-    int getControlPointNum() const
-    {
-        return (int)m_controlPointCoordVec.size() / m_dimension;
-    }
+    
     void showControlPoints(int modeType = 0);
     int display(int modeType = 0);
-    void clear();    
+    virtual void clear() override;    
     double chordPolyLineLength() const;
     double chordPolygonArea() const;
     double curveLength(double a = 0.0, double b = 1.0, stlDVec* polylineCoords = nullptr) const;

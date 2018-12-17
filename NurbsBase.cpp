@@ -499,7 +499,7 @@ int NurbsBase::generateCrvControlPoints(InterpolationCurve * crv, bool tri)
     return flag;
 }
 
-int NurbsBase::plotNurbs(const InterpolationCurve & crv)
+int NurbsBase::plotNurbs(const BCurve & crv)
 {
     if (!crv.checkKnotNum())
         return -1;
@@ -740,7 +740,7 @@ int NurbsBase::evaluate(const InterpolationCurve & crv, double u, std::vector<do
     return 0;
 }
 
-std::vector<double> NurbsBase::deBoor(const InterpolationCurve & crv, double u)
+std::vector<double> NurbsBase::deBoor(const BCurve & crv, double u)
 {
     assert(u >= 0 && u <= 1);
     //u = .6;

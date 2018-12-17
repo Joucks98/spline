@@ -279,8 +279,7 @@ int InterpolationCurve::display(int modeType)
 
 void InterpolationCurve::clear()
 {
-    m_knotVec.clear();
-    m_interPointCoordVec.clear();
+    BCurve::clear();
     m_controlPointCoordVec.clear();
     m_endDerVec.clear();
     readyFlag = false;
