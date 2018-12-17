@@ -13,12 +13,8 @@ public:
     BSpline(int dim = 2, int p = 0)
         :m_dimension(dim), m_degree(p)
     {}
-    BSpline(int dim, int p, const double* uArr, const double* cptArr, int cptNum)
-        :m_dimension(dim), m_degree(p)
-    {
-        m_knotVec.assign(uArr, uArr + p + cptNum + 1);
-        m_controlPointCoordVec.assign(cptArr, cptArr + dim * cptNum);
-    }
+    BSpline(int dim, int p, const double* uArr, const double* cptArr, int cptNum);
+
     BSpline(int dim, int p, stlDVec&& U, stlDVec&& CP)
         :m_dimension(dim), m_degree(p), m_knotVec(U), m_controlPointCoordVec(CP)
     {}
@@ -37,20 +33,9 @@ public:
 
     // m_degree operator
     int p() const { return m_degree; }
-    void changeP(int d)
-    {
-        assert(d >= 0);
-        if (m_degree != d)
-        {
-            m_degree = d;
-            clear();
-        }
-    }
-    virtual void clear()
-    {
-        m_knotVec.clear();
-        m_controlPointCoordVec.clear();
-    }
+    void changeP(int d);
+
+    virtual void clear();
 
     // knots operator
     const stlDVec& getKnots() const { return m_knotVec; }
@@ -69,7 +54,11 @@ public:
     {
         return (int)m_controlPointCoordVec.size() / m_dimension;
     }
+
+    void showControlPoints(int modeType = 0);
 protected:
+    void drawPoint(stlDVec & vec, int dim);
+
     int m_dimension;
     int m_degree;
     stlDVec m_knotVec;

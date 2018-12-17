@@ -374,11 +374,11 @@ void myWindow::myKey(unsigned char key, int x, int y)
         break;
     case 'b':
         toBiHe = !toBiHe;
-        for (auto iter = m_crvVec.begin(); iter != m_crvVec.end(); ++iter)
+        for (auto& m:m_crvVec)
         {
-            if (iter->isInFocus())
+            if (m.isInFocus())
             {
-                iter->update(iter->SetClose(toBiHe));
+                m.update(m.SetClose(toBiHe));
             }
         }        
         glutPostRedisplay();

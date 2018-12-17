@@ -71,13 +71,10 @@ public:
     {
         return (int)m_interPointCoordVec.size() / m_dimension;
     }
-    void showInterPoints(int modeType = 0);    
-
+    void showInterPoints(int modeType = 0);
 
     void update(CURVESTATE flag);
 
-    
-    void showControlPoints(int modeType = 0);
     int display(int modeType = 0);
     virtual void clear() override;    
     double chordPolyLineLength() const;
@@ -100,9 +97,8 @@ public:
     void getOffsetPt(double offsetRatio, const double u[], int num, stlDVec* offsetPts) const;
     void setOffsetLength(double l);
 
-    BSpline bCurve() const;
+    BSpline bSpline() const;
 private:
-    void drawPoint(stlDVec & vec, int dim);
 
     bool readyFlag, isAppend, derivateIsSet, inFocus, closeState;
     double m_offsetLen;

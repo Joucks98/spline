@@ -231,28 +231,6 @@ void InterpolationCurve::update(CURVESTATE flag)
     }
 }
 
-void InterpolationCurve::showControlPoints(int modeType)
-{
-    glColor3f(1.0f, 0.0f, 0.f);
-    glPointSize(5.0);
-    glEnable(GL_POINT_SMOOTH);
-
-    /*std::vector<double> offsetPtVec(m_controlPointCoordVec);
-    if (m_offsetLen != 0)
-        getOffsetPt(m_offsetLen, &m_uParam[0], m_uParam.size(), &offsetPtVec);*/
-    glBegin(GL_POINTS);
-    drawPoint(m_controlPointCoordVec, m_dimension);
-    glEnd();
-
-    glEnable(GL_LINE_STIPPLE);
-    glLineStipple(3, 0x1111);
-    glLineWidth(1.5);
-    glBegin(GL_LINE_STRIP);
-    drawPoint(m_controlPointCoordVec, m_dimension);
-    glEnd();
-    glDisable(GL_LINE_STIPPLE);
-}
-
 int InterpolationCurve::display(int modeType)
 {
     glColor3f(1.0f, 1.0f, .5f);
@@ -290,6 +268,19 @@ int InterpolationCurve::display(int modeType)
     {
         NurbsBase nurbsTool;
         nurbsTool.plotNurbs(*this);
+
+        if (p() == 3)
+        {
+            BSpline sp = this->bSpline();
+            stlDVec UQ, Qw;
+            nurbsTool.curveKnotIns(sp.getKnots(), sp.getControlPointCoords(), sp.dimension(), 3, .325, 3, &UQ, &Qw);
+            sp.setKnots(std::move(UQ));
+            sp.setControlPointCoords(std::move(Qw));
+            nurbsTool.plotNurbs(sp);
+            sp.showControlPoints();
+        }
+        
+
     }
     
 
@@ -743,28 +734,8 @@ void InterpolationCurve::setOffsetLength(double l)
     return;
 }
 
-BSpline InterpolationCurve::bCurve() const
+BSpline InterpolationCurve::bSpline() const
 {
     return BSpline(m_dimension, m_degree, &m_knotVec[0], &m_controlPointCoordVec[0], getControlPointNum());
 }
 
-void InterpolationCurve::drawPoint(stlDVec & vec, int dim)
-{
-    /*if (!vec.empty())
-    {
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(dim, GL_FLOAT, 0, &vec[0]);
-        glDrawArrays(GL_POINTS, 0, vec.size() / dim);
-        glDisableClientState(GL_VERTEX_ARRAY);
-    }*/
-
-    
-    for (int i = 0; i < vec.size() / dim; ++i)
-    {
-    
-        if (2 == dim)
-            glVertex2d(vec[2 * i], vec[2 * i + 1]);
-        else
-            glVertex3d(vec[3 * i], vec[3 * i + 1], vec[3 * i + 2]);
-    }
-}
