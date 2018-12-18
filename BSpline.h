@@ -55,9 +55,7 @@ public:
         return (int)m_controlPointCoordVec.size() / m_dimension;
     }
 
-    void showControlPoints(int modeType = 0);
 protected:
-    void drawPoint(stlDVec & vec, int dim);
 
     int m_dimension;
     int m_degree;

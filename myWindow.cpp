@@ -1,6 +1,9 @@
 #include <Windows.h>
 #include "myWindow.h"
 #include "GeometryCalc.h"
+#include "Paint.h"
+
+using namespace paint;
 
 #define BMP_Header_Length 54
 #define MAX_CHAR    128
@@ -66,17 +69,30 @@ void myWindow::myDisplay()
         auto &iCurve = m_crvVec[i];
         if (iCurve.getReadyFlag()) // iCurve has get all control points
         {
-            iCurve.display(toEdit);
+            showInterpolationCurve(iCurve, toEdit);
+
+
+            if (toEdit || toShowInter)
+                showInterPoints(&iCurve.getInterPointCoords()[0], iCurve.getInterPointNum(), iCurve.dimension(), toEdit);
+            // check if in edit mode
+            if (toEdit || toShowCp)
+                showControlPoints(&iCurve.getControlPointCoords()[0], iCurve.getControlPointNum(), iCurve.dimension());
+            if (toShowDer)
+            {
+                auto uTmp = linspace(0, 1, 100);
+                vector<double> allDerPts, allNorPts;
+                iCurve.getDerNorEndPts(&uTmp[0], 100, &allDerPts, &allNorPts);
+                showDerivates(&allDerPts[0], 100, iCurve.dimension());
+            }
+            if (toShowHull)
+            {
+                GrahamConvexHull tmp(&iCurve.getControlPointCoords()[0], iCurve.getControlPointNum());
+                vector<double> convex;
+                tmp.GetConvexHull(&convex);
+                showHull(&convex[0], convex.size() / iCurve.dimension(), iCurve.dimension());
+            }
         }
-        if (toEdit || toShowInter)
-            iCurve.showInterPoints(toEdit);
-        // check if in edit mode
-        if (toEdit || toShowCp)
-            iCurve.showControlPoints(toEdit);
-        if (toShowDer)
-            iCurve.showDerivates();
-        if (toShowHull)
-            iCurve.showHull();
+        
         
     }
 
@@ -134,8 +150,8 @@ void myWindow::myDisplay()
 
         if (m_stayCrv.getReadyFlag()) 
         {
-            m_stayCrv.display(toEdit);
-            m_stayCrv.showInterPoints(toEdit);
+            showInterpolationCurve(m_stayCrv, toEdit);
+            showInterPoints(&m_stayCrv.getInterPointCoords()[0], m_stayCrv.getInterPointNum(), m_stayCrv.dimension(), toEdit);
             //m_stayCrv.showControlPoints();
         }
         

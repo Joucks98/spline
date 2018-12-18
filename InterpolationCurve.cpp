@@ -1,8 +1,8 @@
 #define _SCL_SECURE_NO_WARNINGS
-#include <Windows.h>
-#include <gl/GLU.h>
 #include <Eigen/Dense>
 #include <iterator>
+#include <algorithm>
+//#include <cmath>
 #include <numeric> // std::inner_product
 #include <functional> // std::plus<>
 #include "NurbsBase.h"
@@ -182,25 +182,6 @@ CURVESTATE InterpolationCurve::modifyInerPointCoords(int index, const double a[]
     }
 }
 
-void InterpolationCurve::showInterPoints(int modeType)
-{
-    glColor3f(0.5f, 0.4f, 0.9f);
-    glPointSize(8.0);
-    glEnable(GL_POINT_SMOOTH);
-    if (modeType)
-    {
-        glPointSize(12.0);
-        glDisable(GL_POINT_SMOOTH);
-    }
-
-    std::vector<double> offsetPtVec(m_interPointCoordVec);
-    if (m_offsetLen != 0)
-        getOffsetPt(m_offsetLen, &m_uParam[0], (int)m_uParam.size(), &offsetPtVec);
-    
-    glBegin(GL_POINTS);
-    drawPoint(offsetPtVec, m_dimension);
-    glEnd();
-}
 
 void InterpolationCurve::update(CURVESTATE flag)
 {
@@ -231,65 +212,65 @@ void InterpolationCurve::update(CURVESTATE flag)
     }
 }
 
-int InterpolationCurve::display(int modeType)
-{
-    glColor3f(1.0f, 1.0f, .5f);
-    glLineWidth(2.0f);
-    if (modeType)
-    {
-        glColor3f(0.8f, 0.8f, 0.5f);
-        //glLineWidth(4.0f);
-        if (inFocus)
-        {
-            glColor3f(1.0f, 1.0f, .5f/*1.0f, 0.5f, 0.f*/);
-            glEnable(GL_LINE_STIPPLE);
-            //glLineStipple(3, 0x0101);
-            glLineStipple(1, 0x1111);
-        }
-            
-    }
-    
-    if (m_offsetLen != 0)
-    {
-        std::vector<double> offsetPtVec;
-        // counterclockwise, reverse sign of m_offsetLen 
-        // to maintain the behavior:positive offsetlen indicates outside contraction
-        ///m_offsetLen *= chordPolygonArea() > 0 ? -1 : 1;
-        auto uSeries = linspace(0, 1, 1000);
-        getOffsetPt((chordPolygonArea() > 0?-1:1)*m_offsetLen, &uSeries[0], (int)uSeries.size(), &offsetPtVec);
-        if (inFocus)
-            glBegin(GL_LINE_STRIP);
-        else
-            glBegin(GL_LINES);
-        drawPoint(offsetPtVec, m_dimension);
-        glEnd();
-    }
-    else
-    {
-        NurbsBase nurbsTool;
-        nurbsTool.plotNurbs(*this);
-
-        if (p() == 3)
-        {
-            BSpline sp = this->bSpline();
-            stlDVec UQ, Qw;
-            nurbsTool.curveKnotIns(sp.getKnots(), sp.getControlPointCoords(), sp.dimension(), 3, .325, 3, &UQ, &Qw);
-            sp.setKnots(std::move(UQ));
-            sp.setControlPointCoords(std::move(Qw));
-            nurbsTool.plotNurbs(sp);
-            sp.showControlPoints();
-        }
-        
-
-    }
-    
-
-    if (modeType && inFocus)
-    {
-        glDisable(GL_LINE_STIPPLE);
-    }
-    return 0;
-}
+//int InterpolationCurve::display(int modeType)
+//{
+//    glColor3f(1.0f, 1.0f, .5f);
+//    glLineWidth(2.0f);
+//    if (modeType)
+//    {
+//        glColor3f(0.8f, 0.8f, 0.5f);
+//        //glLineWidth(4.0f);
+//        if (inFocus)
+//        {
+//            glColor3f(1.0f, 1.0f, .5f/*1.0f, 0.5f, 0.f*/);
+//            glEnable(GL_LINE_STIPPLE);
+//            //glLineStipple(3, 0x0101);
+//            glLineStipple(1, 0x1111);
+//        }
+//            
+//    }
+//    
+//    if (m_offsetLen != 0)
+//    {
+//        std::vector<double> offsetPtVec;
+//        // counterclockwise, reverse sign of m_offsetLen 
+//        // to maintain the behavior:positive offsetlen indicates outside contraction
+//        ///m_offsetLen *= chordPolygonArea() > 0 ? -1 : 1;
+//        auto uSeries = linspace(0, 1, 1000);
+//        getOffsetPt((chordPolygonArea() > 0?-1:1)*m_offsetLen, &uSeries[0], (int)uSeries.size(), &offsetPtVec);
+//        if (inFocus)
+//            glBegin(GL_LINE_STRIP);
+//        else
+//            glBegin(GL_LINES);
+//        drawPoint(&offsetPtVec[0], offsetPtVec.size() / m_dimension, m_dimension);
+//        glEnd();
+//    }
+//    else
+//    {
+//        NurbsBase nurbsTool;
+//        nurbsTool.plotNurbs(*this);
+//
+//        //if (p() == 3)
+//        //{
+//        //    BSpline sp = this->bSpline();
+//        //    stlDVec UQ, Qw;
+//        //    nurbsTool.curveKnotIns(sp.getKnots(), sp.getControlPointCoords(), sp.dimension(), 3, .325, 3, &UQ, &Qw);
+//        //    sp.setKnots(std::move(UQ));
+//        //    sp.setControlPointCoords(std::move(Qw));
+//        //    nurbsTool.plotNurbs(sp);
+//        //    showControlPoints(&sp.getControlPointCoords()[0], sp.getControlPointNum(), sp.dimension());
+//        //}
+//        
+//
+//    }
+//    
+//
+//    if (modeType && inFocus)
+//    {
+//        glDisable(GL_LINE_STIPPLE);
+//    }
+//    return 0;
+//}
 
 void InterpolationCurve::clear()
 {
@@ -504,40 +485,6 @@ void InterpolationCurve::getDerNorEndPts(const double u[], int num, stlDVec * al
     }
 }
 
-void InterpolationCurve::showDerivates()
-{
-    if (m_controlPointCoordVec.empty())
-        return;
-    stlDVec allDerPts, allNorPts;
-    
-    stlDVec uTmp;
-    int num = 100;
-    double step = 1.0 / num;
-    for (int i = 0; i <= num; ++i)
-    {
-        uTmp.push_back((i*step > 1 ? 1 : i*step));
-    }
-    getDerNorEndPts(&uTmp[0], num+1/*&m_uParam[0], m_uParam.size()*/, &allDerPts, &allNorPts);
-    
-
-    glBegin(GL_LINES);
-    //drawPoint(allDerPts, m_dimension);
-    drawPoint(allNorPts, m_dimension);
-    glEnd();
-}
-
-void InterpolationCurve::showHull()
-{
-    if (getControlPointNum() < 3)
-        return;
-    GrahamConvexHull tmp(&getControlPointCoords()[0], getControlPointNum());
-    stlDVec convex;
-    tmp.GetConvexHull(&convex);
-    glBegin(GL_LINE_LOOP);
-    drawPoint(convex, m_dimension);
-    glEnd();
-}
-
 
 static double dot(const double v1[], const double v2[], int dim)
 {
@@ -635,7 +582,7 @@ int InterpolationCurve::FindNearestCurvePoint(const double Q[], stlDVec * crvPt)
     double uStep = 1.0/num, u = 0, minu = -1;
     for (int i = 0; i <= num; ++i)
     {
-        if (nurbsTool.evaluate(*this, min(u,1), &P) != 0)
+        if (nurbsTool.evaluate(*this, std::min(u,1.0), &P) != 0)
         {
             continue;
             //break; // reserve for go into
@@ -645,7 +592,7 @@ int InterpolationCurve::FindNearestCurvePoint(const double Q[], stlDVec * crvPt)
         if (minDist > distPQ)
         {
             minDist = distPQ;
-            minu = min(u,1);
+            minu = std::min(u,1.0);
         }            
         u += uStep;
     }
@@ -726,12 +673,6 @@ void InterpolationCurve::getOffsetPt(double offsetRatio, const double u[], int n
         getOffsetPt(offsetRatio, u[i], &tmp);
         std::copy(tmp.begin(), tmp.end(), std::back_inserter(*offsetPts));
     }
-}
-
-void InterpolationCurve::setOffsetLength(double l)
-{
-    m_offsetLen = l;
-    return;
 }
 
 BSpline InterpolationCurve::bSpline() const

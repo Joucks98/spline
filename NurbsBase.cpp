@@ -17,18 +17,18 @@ using std::unique_ptr;
 
 NurbsBase::NurbsBase()
 {
-    ptrNurbs = gluNewNurbsRenderer();//创建NURBS对象ptrNurbs
-    gluNurbsProperty(ptrNurbs, GLU_SAMPLING_TOLERANCE, 25);
-    gluNurbsProperty(ptrNurbs, GLU_DISPLAY_MODE, GLU_OUTLINE_POLYGON);//把表面渲染为多边形 
+    //ptrNurbs = gluNewNurbsRenderer();//创建NURBS对象ptrNurbs
+    //gluNurbsProperty(ptrNurbs, GLU_SAMPLING_TOLERANCE, 25);
+    //gluNurbsProperty(ptrNurbs, GLU_DISPLAY_MODE, GLU_OUTLINE_POLYGON);//把表面渲染为多边形 
 }
 
 NurbsBase::~NurbsBase()
 {
-    if (ptrNurbs != nullptr)
-    {
-        gluDeleteNurbsRenderer(ptrNurbs);
-        ptrNurbs = nullptr;
-    }
+    //if (ptrNurbs != nullptr)
+    //{
+    //    gluDeleteNurbsRenderer(ptrNurbs);
+    //    ptrNurbs = nullptr;
+    //}
 
 }
 
@@ -341,15 +341,16 @@ namespace OUT
 {
     ostream& operator <<(ostream& o, const std::vector<double>& a)
     {
-        for (auto itr = a.begin(); itr != a.end(); ++itr)
+        for (auto& m: a)
         {
-            o << *itr << " ";
+            o << m << " ";
         }
         o << endl;
         return o;
     }
 }
 
+using namespace OUT;
 
 int NurbsBase::generateCrvControlPoints(InterpolationCurve * crv, bool tri)
 {
@@ -499,27 +500,27 @@ int NurbsBase::generateCrvControlPoints(InterpolationCurve * crv, bool tri)
     return flag;
 }
 
-int NurbsBase::plotNurbs(const BSpline & crv)
-{
-    if (!crv.checkKnotNum())
-        return -1;
-    unique_ptr<GLfloat[]> controlPoints(new GLfloat[crv.getControlPointNum() * 3]);
-    for (int k = 0; k < crv.getControlPointNum(); ++k)
-    {
-        controlPoints[3 * k] = (GLfloat)crv.getControlPointCoords()[crv.dimension()*k + 0];
-        controlPoints[3 * k + 1] = (GLfloat)crv.getControlPointCoords()[crv.dimension()*k + 1];
-        controlPoints[3 * k + 2] = 1.0f;
-    }
-    unique_ptr<GLfloat[]> knots(new GLfloat[crv.getKnots().size()]);
-    for (int k = 0; k < crv.getKnots().size(); ++k)
-        knots[k] = (GLfloat)crv.getKnots()[k];
-
-    gluBeginCurve(ptrNurbs);
-    gluNurbsCurve(ptrNurbs, (GLint)crv.getKnots().size(), knots.get(), 3, controlPoints.get(), crv.p() + 1, GL_MAP1_VERTEX_3);
-    gluEndCurve(ptrNurbs);
-
-    return 0;
-}
+//int NurbsBase::plotNurbs(const BSpline & crv)
+//{
+//    if (!crv.checkKnotNum())
+//        return -1;
+//    unique_ptr<GLfloat[]> controlPoints(new GLfloat[crv.getControlPointNum() * 3]);
+//    for (int k = 0; k < crv.getControlPointNum(); ++k)
+//    {
+//        controlPoints[3 * k] = (GLfloat)crv.getControlPointCoords()[crv.dimension()*k + 0];
+//        controlPoints[3 * k + 1] = (GLfloat)crv.getControlPointCoords()[crv.dimension()*k + 1];
+//        controlPoints[3 * k + 2] = 1.0f;
+//    }
+//    unique_ptr<GLfloat[]> knots(new GLfloat[crv.getKnots().size()]);
+//    for (int k = 0; k < crv.getKnots().size(); ++k)
+//        knots[k] = (GLfloat)crv.getKnots()[k];
+//
+//    gluBeginCurve(ptrNurbs);
+//    gluNurbsCurve(ptrNurbs, (GLint)crv.getKnots().size(), knots.get(), 3, controlPoints.get(), crv.p() + 1, GL_MAP1_VERTEX_3);
+//    gluEndCurve(ptrNurbs);
+//
+//    return 0;
+//}
 
 int NurbsBase::doolittleLU(double A[], int rowColnum)
 {
@@ -679,7 +680,7 @@ void NurbsBase::curveDer_1(int p, const std::vector<double>& U,
     vector<double*> ders(d + 1);
     for (auto& it: ders) it = new double[p + 1];
 
-    int du = min(d,p);    
+    int du = std::min(d,p);    
     int span = findSpan(p, u, U);
     dersBasisFuns(span, u, p, du, U, &ders[0]);
 

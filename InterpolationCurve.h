@@ -71,11 +71,10 @@ public:
     {
         return (int)m_interPointCoordVec.size() / m_dimension;
     }
-    void showInterPoints(int modeType = 0);
 
     void update(CURVESTATE flag);
 
-    int display(int modeType = 0);
+    //int display(int modeType = 0);
     virtual void clear() override;    
     double chordPolyLineLength() const;
     double chordPolygonArea() const;
@@ -88,14 +87,15 @@ public:
 
     void getDerNorEndPts(double u, stlDVec* derPts, stlDVec* norPts) const;
     void getDerNorEndPts(const double u[], int num, stlDVec* allDerPts, stlDVec* allNorPts) const;
-    void showDerivates();
-    void showHull();
+
 
     int FindNearestCurvePoint(const double Q[], stlDVec* crvPt) const;
     CURVESTATE SetClose(bool b);
     void getOffsetPt(double offsetRatio, double u, stlDVec* offsetPt) const;
     void getOffsetPt(double offsetRatio, const double u[], int num, stlDVec* offsetPts) const;
-    void setOffsetLength(double l);
+    
+    void setOffsetLength(double l) { m_offsetLen = l; }
+    double getOffsetLength() const { return m_offsetLen; };
 
     BSpline bSpline() const;
 private:
