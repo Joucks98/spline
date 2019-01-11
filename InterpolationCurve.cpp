@@ -526,7 +526,7 @@ static double NewtonMethod(const InterpolationCurve& crv, double u, const double
         P_Q = P - Q;
         fk_1 = T.dot(P_Q); 
 
-        double lamda = 1 / sqrt(T.dot(T));
+        double lamda = 1.0 / sqrt(T.dot(T));
         uT = T * lamda;
         double tmp = dT.dot(uT); // this not zero! :)
         dfk_1 = (dT-(dT.dot(uT))*uT).dot(P_Q) + T.dot(T);
@@ -537,11 +537,15 @@ static double NewtonMethod(const InterpolationCurve& crv, double u, const double
         if (abs(fk_1) / tm < EPS)
         {
             type = 1;
+            uCur = std::min(uCur, 1.0);
+            uCur = std::max(uCur, 0.0);
             break;
         }
         if (abs(uCur - uPre) < EPS)
         {
             type = 2;
+            uCur = std::min(uCur, 1.0);
+            uCur = std::max(uCur, 0.0);
             break;
         }
         if (uCur < 0)
@@ -559,8 +563,8 @@ static double NewtonMethod(const InterpolationCurve& crv, double u, const double
             type = 3;
             uCur = u + rou*(uCur - u); 
         }
-        uCur = uCur > 1 ? 1 : uCur;
-        uCur = uCur < 0 ? 0 : uCur;
+        uCur = std::min(uCur, 1.0);
+        uCur = std::max(uCur, 0.0);
     }
     if (type == 0)
     {
@@ -573,8 +577,11 @@ static double NewtonMethod(const InterpolationCurve& crv, double u, const double
     return uCur;
 }
 
-int InterpolationCurve::FindNearestCurvePoint(const double Q[], stlDVec * crvPt) const
+int InterpolationCurve::FindNearestCurvePoint(const double Q[], stlDVec * crvPt, double* mu) const
 {
+    //assert(crvPt != nullptr);
+    //assert(mu != nullptr);
+
     NurbsBase nurbsTool;
     stlDVec P;
     double minDist = LONG_MAX;
@@ -599,8 +606,12 @@ int InterpolationCurve::FindNearestCurvePoint(const double Q[], stlDVec * crvPt)
 
     if (minu >= 0)
     {
-        minu = NewtonMethod(*this, minu, Q);
-        return nurbsTool.evaluate(*this, minu, crvPt);
+        double uu = NewtonMethod(*this, minu, Q);
+        if (mu != nullptr) *mu = uu;
+        stlDVec pt;
+        int flag = nurbsTool.evaluate(*this, uu, &pt);
+        if (crvPt != nullptr) crvPt->swap(pt);
+        return flag;
     }
     else
     {
