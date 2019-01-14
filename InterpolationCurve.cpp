@@ -431,14 +431,17 @@ void InterpolationCurve::getDerNorEndPts(double u, stlDVec* derPts, stlDVec* nor
 {
     assert(derPts != nullptr || norPts != nullptr);
     assert(u >= 0 && u <= 1);
+
+    stlDVec der;
+    NurbsBase nurbsTool;
+    if (!nurbsTool.curveDer_1(*this, u, 1, &der))
+    {
+        return;
+    }
     if (derPts != nullptr && derPts->size() != 2 * m_dimension)
         derPts->resize(2 * m_dimension);
     if (norPts != nullptr && norPts->size() != 2 * m_dimension)
         norPts->resize(2 * m_dimension);
-
-    stlDVec der;
-    NurbsBase nurbsTool;
-    nurbsTool.curveDer_1(*this, u, 1, &der);
     double len = norm2(&der[m_dimension], m_dimension);
     if (norPts != nullptr)
     {
@@ -641,7 +644,10 @@ void InterpolationCurve::getOffsetPt(double offsetRatio, double u, stlDVec * off
     assert(u >= 0 && u <= 1);
     stlDVec der;
     NurbsBase nurbsTool;
-    nurbsTool.curveDer_1(*this, u, 1, &der);    
+    if (!nurbsTool.curveDer_1(*this, u, 1, &der))
+    {
+        return;
+    }
     
     stlDVec normal(der.begin()+m_dimension, der.end());
     if (m_dimension == 2)

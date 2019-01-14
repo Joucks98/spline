@@ -81,7 +81,7 @@ public:
     static void curveDer_1(/*int n, */int p, const std::vector<double>& U, 
         const std::vector<double>& PC, double u, int d, int dim, std::vector<double>* CK);
     /*output: value and d derivates in parameter u*/
-    void curveDer_1(const InterpolationCurve& crv, double u, int d, std::vector<double>* der);
+    bool curveDer_1(const InterpolationCurve& crv, double u, int d, std::vector<double>* der);
     
     int evaluate(const InterpolationCurve& crv, double u, std::vector<double>* val);
     static std::vector<double> deBoor(const BSpline& crv, double u);

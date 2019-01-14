@@ -700,18 +700,19 @@ void NurbsBase::curveDer_1(int p, const std::vector<double>& U,
     for (auto& it: ders) delete[] it;
 }
 
-void NurbsBase::curveDer_1(const InterpolationCurve & crv, double u, int d, std::vector<double>* der)
+bool NurbsBase::curveDer_1(const InterpolationCurve & crv, double u, int d, std::vector<double>* der)
 {
     assert(u >= 0 && u <= 1);
     assert(der != nullptr);
+    der->clear();
     if (!const_cast<InterpolationCurve&>(crv).getReadyFlag())
     {
-        der = nullptr;
-        return;
+        return false;
     }       
     std::vector<double> derTmp;
     curveDer_1(crv.p(), crv.getKnots(), crv.getControlPointCoords(), u, d, crv.dimension(), &derTmp);
     der->swap(derTmp);
+    return true;
 }
 
 int NurbsBase::evaluate(const InterpolationCurve & crv, double u, std::vector<double>* val)
