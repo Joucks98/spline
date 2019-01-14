@@ -72,8 +72,7 @@ void myWindow::myDisplay()
             showInterpolationCurve(iCurve, toEdit);
 
 
-            if (toEdit || toShowInter)
-                showInterPoints(&iCurve.getInterPointCoords()[0], iCurve.getInterPointNum(), iCurve.dimension(), toEdit);
+            
             // check if in edit mode
             if (toEdit || toShowCp)
                 showControlPoints(&iCurve.getControlPointCoords()[0], iCurve.getControlPointNum(), iCurve.dimension());
@@ -92,6 +91,8 @@ void myWindow::myDisplay()
                 showHull(&convex[0], convex.size() / iCurve.dimension(), iCurve.dimension());
             }
         }
+        if ((toEdit || toShowInter)&& !iCurve.getInterPointCoords().empty())
+            showInterPoints(&iCurve.getInterPointCoords()[0], iCurve.getInterPointNum(), iCurve.dimension(), toEdit);
         
         
     }
@@ -339,10 +340,11 @@ void myWindow::myMouse(int button, int state, int x, int y)
             if (crv_pt_idxs.second != -1 && m_crvVec[crv_pt_idxs.first].isInFocus())
             {
                 m_crvVec[crv_pt_idxs.first].setFocus(false);
-                m_stayCrv.clear();
+                //m_stayCrv.clear();
                 m_crvVec[crv_pt_idxs.first].update(m_crvVec[crv_pt_idxs.first].modifyInerPointCoords(crv_pt_idxs.second, qCoord));
                 crv_pt_idxs = make_pair(-1, -1);
             }
+            m_stayCrv.clear();
         }
         else
         {
