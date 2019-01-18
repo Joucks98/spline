@@ -78,17 +78,28 @@ void myWindow::myDisplay()
                 showControlPoints(&iCurve.getControlPointCoords()[0], iCurve.getControlPointNum(), iCurve.dimension());
             if (toShowDer)
             {
-                auto uTmp = linspace(0, 1, 100);
+                int m = 10;
+                auto pts = iCurve.linspacePoints(m);
+                vector<double> uTmp;
+                for (int i = 0; i < m; ++i)
+                {
+                    double mu = 0.0;
+                    if (iCurve.FindNearestCurvePoint(&pts[i*iCurve.dimension()], nullptr, &mu) == 0)
+                    {
+                        uTmp.push_back(mu);
+                    }
+                }
+                //auto uTmp = linspace(0, 1, 100);
                 vector<double> allDerPts, allNorPts;
-                iCurve.getDerNorEndPts(&uTmp[0], 100, &allDerPts, &allNorPts);
-                showDerivates(&allDerPts[0], 100, iCurve.dimension());
+                iCurve.getDerNorEndPts(&uTmp[0], m, &allDerPts, &allNorPts);
+                showDerivates(&allNorPts[0], m, iCurve.dimension());
             }
             if (toShowHull)
             {
                 GrahamConvexHull tmp(&iCurve.getControlPointCoords()[0], iCurve.getControlPointNum());
                 vector<double> convex;
                 tmp.GetConvexHull(&convex);
-                showHull(&convex[0], convex.size() / iCurve.dimension(), iCurve.dimension());
+                showHull(&convex[0], (int)convex.size() / iCurve.dimension(), iCurve.dimension());
             }
         }
         if ((toEdit || toShowInter)&& !iCurve.getInterPointCoords().empty())
@@ -311,6 +322,7 @@ void myWindow::myMouse(int button, int state, int x, int y)
                 for (auto & m : m_crvVec)
                 {
                     std::vector<double> tmp;
+                    //double mu = 0.0;
                     if (m.FindNearestCurvePoint(qCoord, &tmp) != 0)
                         continue;
                     double tmpDist = twoPointDist(qCoord, &tmp[0], 2);

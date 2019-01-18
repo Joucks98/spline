@@ -120,7 +120,7 @@ int paint::showInterpolationCurve(const InterpolationCurve &crv, int modeType)
             glBegin(GL_LINE_STRIP);
         else
             glBegin(GL_LINES);
-        drawPoint(&offsetPtVec[0], offsetPtVec.size() / crv.dimension(), crv.dimension());
+        drawPoint(&offsetPtVec[0], (int)offsetPtVec.size() / crv.dimension(), crv.dimension());
         glEnd();
     }
     else

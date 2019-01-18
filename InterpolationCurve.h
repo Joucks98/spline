@@ -89,7 +89,7 @@ public:
     void getDerNorEndPts(const double u[], int num, stlDVec* allDerPts, stlDVec* allNorPts) const;
 
 
-    int FindNearestCurvePoint(const double Q[], stlDVec* crvPt) const;
+    int FindNearestCurvePoint(const double Q[], stlDVec* crvPt = nullptr, double* u = nullptr) const;
     CURVESTATE SetClose(bool b);
     void getOffsetPt(double offsetRatio, double u, stlDVec* offsetPt) const;
     void getOffsetPt(double offsetRatio, const double u[], int num, stlDVec* offsetPts) const;
