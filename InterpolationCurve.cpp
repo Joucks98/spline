@@ -384,10 +384,12 @@ double InterpolationCurve::curveLength(double a, double b, stlDVec* polylineCoor
 InterpolationCurve::stlDVec InterpolationCurve::evaluate(const stlDVec & uSeries) const
 {
     stlDVec re(uSeries.size()*m_dimension);
-    for (int i = 0, base = 0; i < uSeries.size(); ++i, base+=m_dimension)
+    int base = 0;
+    for (auto u: uSeries)
     {
-        auto tmp = NurbsBase::deBoor(*this, uSeries[i]);
+        auto tmp = NurbsBase::deBoor(*this, u);
         std::copy(tmp.begin(), tmp.end(), re.begin() + base);
+        base += m_dimension;
     }
     return re;
 }

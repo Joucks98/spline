@@ -417,7 +417,7 @@ int NurbsBase::generateCrvControlPoints(InterpolationCurve * crv, bool tri)
             double Pn1 = Q[nQ - 1] - (1 - knotVec[nQ + 1]) / 3.0 * Q_nn_1[i] /** length / len2*/;
             std::vector<double> P;
             solveTridiagonal(Q, knotVec, P1, Pn1, &P);
-            for (int k = 0; k < P.size(); ++k)
+            for (size_t k = 0; k < P.size(); ++k)
                 tmpCtlCoodVec[i + k*dim] = P[k];
         }
         (*crv).setControlPointCoords(std::move(tmpCtlCoodVec));

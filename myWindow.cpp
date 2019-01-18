@@ -64,9 +64,9 @@ void myWindow::myDisplay()
     //glDrawPixels(imagewidth, imageheight, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixeldata);
 
 
-    for (int i = 0; i < m_crvVec.size(); ++i)
+    for (auto& iCurve: m_crvVec)
     {
-        auto &iCurve = m_crvVec[i];
+        //auto &iCurve = m_crvVec[i];
         if (iCurve.getReadyFlag()) // iCurve has get all control points
         {
             showInterpolationCurve(iCurve, toEdit);
@@ -717,7 +717,7 @@ pair<int, int> myWindow::findMoveIndex(const vector<InterpolationCurve>& crvVec,
     int crvId = -1, ptId = -1;
     double distMin = LONG_MAX;
     std::vector<double> Q = { x, y };
-    for (int k = 0; k < crvVec.size(); ++k)
+    for (size_t k = 0; k < crvVec.size(); ++k)
     {
         const auto& crv = crvVec[k];
         if (crv.getInterPointCoords().empty())

@@ -152,7 +152,7 @@ int paint::plotNurbs(const BSpline & crv)
         controlPoints[3 * k + 2] = 1.0f;
     }
     unique_ptr<GLfloat[]> knots(new GLfloat[crv.getKnots().size()]);
-    for (int k = 0; k < crv.getKnots().size(); ++k)
+    for (size_t k = 0; k < crv.getKnots().size(); ++k)
         knots[k] = (GLfloat)crv.getKnots()[k];
 
     gluBeginCurve(ptrNurbs);
