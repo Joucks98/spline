@@ -9,7 +9,7 @@
 using namespace std;
 
 
-void paint::drawPoint(const double * pointCoords, int pointsNum, int dim)
+void paint::drawPoints(const double * pointCoords, int pointsNum, int dim)
 {
     /*if (!vec.empty())
     {
@@ -41,14 +41,14 @@ void paint::showControlPoints(const double * pointCoords, int pointsNum, int dim
     if (m_offsetLen != 0)
     getOffsetPt(m_offsetLen, &m_uParam[0], m_uParam.size(), &offsetPtVec);*/
     glBegin(GL_POINTS);
-    drawPoint(pointCoords, pointsNum, dim);
+    drawPoints(pointCoords, pointsNum, dim);
     glEnd();
 
     glEnable(GL_LINE_STIPPLE);
     glLineStipple(3, 0x1111);
     glLineWidth(1.5);
     glBegin(GL_LINE_STRIP);
-    drawPoint(pointCoords, pointsNum, dim);
+    drawPoints(pointCoords, pointsNum, dim);
     glEnd();
     glDisable(GL_LINE_STIPPLE);
 }
@@ -69,15 +69,15 @@ void paint::showInterPoints(const double * pointCoords, int pointsNum, int dim, 
     //    getOffsetPt(m_offsetLen, &m_uParam[0], (int)m_uParam.size(), &offsetPtVec);
 
     glBegin(GL_POINTS);
-    drawPoint(pointCoords, pointsNum, dim);
+    drawPoints(pointCoords, pointsNum, dim);
     glEnd();
 }
 
 void paint::showDerivates(const double * pointPairsArr, int linesNum, int dim)
 {
     glBegin(GL_LINES);
-    //drawPoint(allDerPts, m_dimension);
-    drawPoint(pointPairsArr, 2* linesNum, dim);
+    //drawPoints(allDerPts, m_dimension);
+    drawPoints(pointPairsArr, 2* linesNum, dim);
     glEnd();
 }
 
@@ -86,7 +86,7 @@ void paint::showHull(const double * pointCoords, int pointsNum, int dim)
     if (pointsNum < 3)
         return;    
     glBegin(GL_LINE_LOOP);
-    drawPoint(pointCoords, pointsNum, dim);
+    drawPoints(pointCoords, pointsNum, dim);
     glEnd();
 }
 
@@ -120,7 +120,7 @@ int paint::showInterpolationCurve(const InterpolationCurve &crv, int modeType)
             glBegin(GL_LINE_STRIP);
         else
             glBegin(GL_LINES);
-        drawPoint(&offsetPtVec[0], (int)offsetPtVec.size() / crv.dimension(), crv.dimension());
+        drawPoints(&offsetPtVec[0], (int)offsetPtVec.size() / crv.dimension(), crv.dimension());
         glEnd();
     }
     else
