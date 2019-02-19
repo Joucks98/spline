@@ -147,13 +147,13 @@ std::vector<double> NurbsBase::generateKonts(const double * uArr, int uLen, int 
 
     int p = order - 1;
     vector<double> knotArr(h + p + 2, 0.0);
-    for (size_t i = 0; i < order; ++i)
+    for (int i = 0; i < order; ++i)
     {
         knotArr[knotArr.size() - 1 - i] = 1.0;
     }
 
     double d = 1.0*uLen / (h - p + 1);
-    for (size_t j = 0; j <= h - p; ++j)
+    for (int j = 0; j <= h - p; ++j)
     {
         double tmp = j * d;
         int i = int(tmp);
@@ -645,9 +645,11 @@ void NurbsBase::dersBasisFuns(int i, double u, int p, int n, const std::vector<d
     /*Êä³ö£ºdersÊÇ(n+1)x(p+1)*/
 
     vector<double*> ndu(p + 1);
-    for (auto& it: ndu) it = new double[p + 1];
+    for (auto& it: ndu) 
+        it = new double[p + 1];
     vector<double*> a(n + 1);
-    for (auto& it: a) it = new double[n + 1];
+    for (auto& it: a) 
+        it = new double[n + 1];
 
     int j, r, s1, s2, k, rk, pk, j1, j2;
     double d, saved, temp;
@@ -712,8 +714,10 @@ void NurbsBase::dersBasisFuns(int i, double u, int p, int n, const std::vector<d
         r *= (p - k);
     }
 
-    for (auto& it: ndu) delete[] it;
-    for (auto& it : a) delete[] it;
+    for (auto& it: ndu) 
+        delete[] it;
+    for (auto& it : a) 
+        delete[] it;
 }
 
 void NurbsBase::curveDer_1(int p, const std::vector<double>& U, 
@@ -741,7 +745,10 @@ void NurbsBase::curveDer_1(int p, const std::vector<double>& U,
     //}
 
     vector<double*> ders(d + 1);
-    for (auto& it: ders) it = new double[p + 1];
+    for (auto& it : ders)
+    {
+        it = new double[p + 1];
+    }
 
     int du = std::min(d,p);    
     int span = findSpan(p, u, U);
@@ -760,15 +767,16 @@ void NurbsBase::curveDer_1(int p, const std::vector<double>& U,
         }
     }
     
-    for (auto& it: ders) delete[] it;
+    for (auto& it: ders) 
+        delete[] it;
 }
 
-bool NurbsBase::curveDer_1(const InterpolationCurve & crv, double u, int d, std::vector<double>* der)
+bool NurbsBase::curveDer_1(const BSpline & crv, double u, int d, std::vector<double>* der)
 {
     assert(u >= 0 && u <= 1);
     assert(der != nullptr);
     der->clear();
-    if (!const_cast<InterpolationCurve&>(crv).getReadyFlag())
+    if (!crv.checkKnotNum())
     {
         return false;
     }       
@@ -778,11 +786,11 @@ bool NurbsBase::curveDer_1(const InterpolationCurve & crv, double u, int d, std:
     return true;
 }
 
-int NurbsBase::evaluate(const InterpolationCurve & crv, double u, std::vector<double>* val)
+int NurbsBase::evaluate(const BSpline & crv, double u, std::vector<double>* val)
 {
     assert(u >= 0 && u <= 1);
     assert(val != nullptr);
-    if (!const_cast<InterpolationCurve&>(crv).getReadyFlag())
+    if (!crv.checkKnotNum())
     {
         return 1;
     }
