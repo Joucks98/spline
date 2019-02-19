@@ -14,6 +14,16 @@ double Area2(const tPointd a, const tPointd b, const tPointd c)
     return (b[0] - a[0])*(c[1] - a[1]) - (c[0] - a[0])*(b[1] - a[1]);
 }
 
+void CrossProduct(const double a[3], const double b[3], double c[3])
+{
+    for (int i = 0; i < 3; ++i)
+    {
+        int i1 = (i + 1) % 3;
+        int i2 = (i + 2) % 3;
+        c[i] = a[i1] * b[i2] - a[i2] * b[i1];
+    }
+}
+
 double GetPolygonArea(const tPointd P[], int num)
 {
     if (num < 3)
@@ -326,7 +336,7 @@ vector<double> linspace(double a, double b, int num/* = 100*/)
     return series;
 }
 
-vector<double> subdivide(const double * uArr, int num)
+vector<double> midPartition(const double * uArr, int num)
 {
     vector<double> tmp(num);
     std::adjacent_difference(uArr, uArr + num, tmp.begin(), [](auto&a, auto& b) {
@@ -335,6 +345,14 @@ vector<double> subdivide(const double * uArr, int num)
     tmp.erase(tmp.begin());
     //vector<double> re(2*num - 1);
     //std::merge(uArr, uArr + num, tmp.begin() + 1, tmp.end(), re.begin());
+    return tmp;
+}
+
+vector<double> subdivision(const double* uArr, int num)
+{
+    auto interUSeries = midPartition(uArr, num);
+    vector<double> tmp((num << 1) - 1);
+    std::merge(uArr, uArr+num, interUSeries.begin(), interUSeries.end(), tmp.begin());
     return tmp;
 }
 

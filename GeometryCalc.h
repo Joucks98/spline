@@ -30,7 +30,11 @@ typedef struct tPointStruct {
     //operator bool() { return del; }
 }tsPoint;
 
+//typedef double tVectord[2];
+
 double Area2(const tPointd a, const tPointd b, const tPointd c);
+
+void CrossProduct(const double a[3], const double b[3], double c[3]);
 
 double GetPolygonArea(const tPointd P[], int num);
 
@@ -132,6 +136,8 @@ double polylineLength(const double * startPtCoords, const double * endPtCoords, 
 double polylineLength(const double* ptCoords, int dim, int numPts);
 vector<double> accumulatePolylineLength(const double* coords, int dim, int num);
 vector<double> linspace(double a, double b, int num = 100); // evenly distribute num values in [a, b] interval
-vector<double> subdivide(const double* uArr, int num);
+vector<double> midPartition(const double* uArr, int num);
+vector<double> subdivision(const double* uArr, int num);
+
 
 #endif // !__GEOMETRYCALC_H__
