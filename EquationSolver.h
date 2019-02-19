@@ -29,7 +29,7 @@ public:
             BTmp(i) = bElems[i];
         B = BTmp.transpose();
     }
-    //EquationSolver(MatrixXd& a, MatrixXd& b) : A(a), B(b) {}
+    EquationSolver(MatrixXd& a, MatrixXd& b) : A(a), B(b) {}
     ~EquationSolver() {}
     bool getSolution(double* xArr)
     {
