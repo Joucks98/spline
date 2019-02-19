@@ -327,7 +327,7 @@ double InterpolationCurve::curveLength(double a, double b, stlDVec* polylineCoor
     {
         pre = cur;
 
-        auto interUSeries = subdivide(&uSeries[0], num);
+        auto interUSeries = midPartition(&uSeries[0], num);
         auto interCoords = evaluate(interUSeries);
         double s1 = polylineLength(&coords[0], &interCoords[0], m_dimension, num - 1);
         double s2 = polylineLength(&interCoords[0], &coords[m_dimension], m_dimension, num - 1);
@@ -455,6 +455,8 @@ void InterpolationCurve::getDerNorEndPts(double u, stlDVec* derPts, stlDVec* nor
         for (int i = 0; i < m_dimension; ++i)
         {
             nor[m_dimension + i] /= len;
+            // test curvature:
+            //nor[m_dimension + i] /= nurbsTool.curvature(*this, u);
             nor[m_dimension + i] += nor[i];
         }
         std::copy(nor.begin(), nor.end(), norPts->begin());
