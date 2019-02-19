@@ -16,7 +16,7 @@ public:
     BSpline(int dim, int p, const double* uArr, const double* cptArr, int cptNum);
 
     BSpline(int dim, int p, stlDVec&& U, stlDVec&& CP)
-        :m_dimension(dim), m_degree(p), m_knotVec(U), m_controlPointCoordVec(CP)
+        :m_dimension(dim), m_degree(p), m_knotVec(std::move(U)), m_controlPointCoordVec(std::move(CP))
     {}
     BSpline(const BSpline&) = default;
     BSpline(BSpline&&) = default;
