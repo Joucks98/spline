@@ -5,6 +5,7 @@
 #include "NurbsBase.h"
 #include "EquationSolver.h"
 #include "InterpolationCurve.h"
+#include "GeometryCalc.h" // CrossProduct
 
 #define EPS 1e-12
 
@@ -784,6 +785,31 @@ bool NurbsBase::curveDer_1(const BSpline & crv, double u, int d, std::vector<dou
     curveDer_1(crv.p(), crv.getKnots(), crv.getControlPointCoords(), u, d, crv.dimension(), &derTmp);
     der->swap(derTmp);
     return true;
+}
+
+double NurbsBase::curvature(const BSpline & crv, double u)
+{
+    std::vector<double> der;
+    curveDer_1(crv, u, 2, &der);
+    /*
+          ||r'(t) x r''(t)|| 
+     K =  ------------------
+             ||r'(t)||^3
+     */
+    double r[2][3] = { 0.0 };
+    int dim = crv.dimension();
+    for (int i = 0, base = dim; i < 2; ++i, base += dim)
+    {
+        std::copy(&der[base], &der[base] + dim, &r[i][0]);
+    }
+    double c[3] = { 0.0 };
+    CrossProduct(r[0], r[1], c);
+    int sign = c[2] > 0 ? 1 : -1;
+    double numerator = sign * Interpolation::norm2(c, 3);
+    double tmp = Interpolation::norm2(r[0], 3);
+    double denominator = tmp * tmp*tmp;
+
+    return numerator / denominator;
 }
 
 int NurbsBase::evaluate(const BSpline & crv, double u, std::vector<double>* val)

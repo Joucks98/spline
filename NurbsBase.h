@@ -90,6 +90,7 @@ public:
     /*output: value and d derivates in parameter u*/
     bool curveDer_1(const BSpline& crv, double u, int d, std::vector<double>* der);
     
+    double curvature(const BSpline& crv, double u);
     int evaluate(const BSpline& crv, double u, std::vector<double>* val);
     static std::vector<double> deBoor(const BSpline& crv, double u);
     static int curveKnotIns(
