@@ -44,7 +44,73 @@ void myWindow::myInit()
     //把每个字符的绘制命令都装到对应的显示列表中
     wglUseFontBitmaps(wglGetCurrentDC(), 0, MAX_CHAR, TextFont);
 }
-
+#include "EquationSolver.h"
+#include "NurbsBase.h"
+#include <numeric>
+BSpline fun()
+{
+    double x[] = { -1.84, -0.73, 0.82, -1.99, -0.49, -0.15,
+        0.64,-0.64, -1.7, 1.73, -1.06, 1.61, 1.27, 0.07, 1.14, -0.02, 1.2 };
+    double y[] = { -0.111064, 0.285038, 0.206962, -0.00901603, 0.597338,
+        1.04987, 0.42024, 0.372125, -0.137588, -0.101482, -0.129705,
+        -0.077493, -0.163451, 1.06544, -0.187511, 0.987856, -0.0780444
+    };
+    int n = sizeof(x) / sizeof(double);
+    vector<pair<double,double>> pt(n);
+    for (int i = 0; i < n; ++i)
+    {
+        pt[i] = make_pair(x[i], y[i]);
+    }
+    std::sort(begin(pt), end(pt), [](auto& a, auto& b) {return a.first < b.first; });
+    auto itr = begin(pt);
+    vector<double> Q;
+    while (itr != end(pt))
+    {
+        Q.push_back(itr->first);
+        Q.push_back(itr->second);
+        itr = next(itr);
+    }
+    InterpolationCurve crv;
+    crv.setInterPointCoords(std::move(Q));
+    NurbsBase nurbsTool;
+    nurbsTool.generateUparameter(&crv);
+    auto& uParam = crv.getUparam();
+    int h = 7, p = 4;
+    int dim = 2;
+    auto knotVec = nurbsTool.generateKonts(&uParam[0], crv.getInterPointNum(), h, p + 1);
+    vector<double> N;
+    nurbsTool.constructMatrixN(uParam, knotVec, p, &N);
+    auto& QCoords = crv.getInterPointCoords();
+    MatrixXd R(uParam.size() - 2, dim);
+    int k = 0;
+    for (int j = 0; j < dim; ++j)
+    {
+        for (size_t i = 1; i < uParam.size() - 1; ++i)
+        {
+            R(k++) = QCoords[dim*i + j] - N[(h + 1)*i + 0] * QCoords[j] - N[(h + 1)*i + h] * QCoords[QCoords.size() - dim + j];
+        }
+    }
+    MatrixXd eNT(h + 1, uParam.size());
+    for (size_t i = 0; i < N.size(); ++i)
+    {
+        eNT(i) = N[i];
+    }
+    MatrixXd eN = eNT.transpose();
+    auto eNr = eN.block(1, 1, uParam.size() - 2, h - 1);
+    MatrixXd eNrTR = eNr.transpose()*R;
+    MatrixXd eNrTeNr = eNr.transpose()*eNr;
+    EquationSolver slr(eNrTeNr, eNrTR);
+    vector<double> xx(dim*(h - 1));
+    slr.getSolution(&xx[0]);
+    vector<double> P(dim*(h + 1));
+    for (int i = 0; i < dim; ++i)
+    {
+        P[i] = QCoords[i];
+        P[P.size() - dim + i] = QCoords[QCoords.size() - dim + i];
+    }
+    std::copy(xx.begin(), xx.end(), P.begin() + dim);
+    return BSpline(dim, p, &knotVec[0], &P[0], h + 1);
+}
 void myWindow::myDisplay()
 {
     GLint viewPort[4];
@@ -63,6 +129,16 @@ void myWindow::myDisplay()
     // draw background pic
     //glDrawPixels(imagewidth, imageheight, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixeldata);
 
+    //plotNurbs(fun());
+    auto bs = fun();
+    auto se = linspace(0, 1);
+    glBegin(GL_POINTS);
+    for (auto u: se)
+    {
+        auto tmp = NurbsBase::deBoor(bs, u);
+        drawPoints(&tmp[0], 1, 2);
+    }
+    glEnd();
 
     for (auto& iCurve: m_crvVec)
     {
@@ -184,11 +260,11 @@ void myWindow::reshape(int w, int h)
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     if (w <= h)
-        //gluOrtho2D(-5.0, 5.0, -5.0 * (GLfloat)h / (GLfloat)w, 5.0 * (GLfloat)h / (GLfloat)w);
-        glOrtho(-15.0, 15.0, -15.0 * (GLfloat)h / (GLfloat)w, 15.0 * (GLfloat)h / (GLfloat)w, -10.0, 10.0);
+        gluOrtho2D(-2.0, 2.0, -2.0 * (GLfloat)h / (GLfloat)w, 2.0 * (GLfloat)h / (GLfloat)w);
+        //glOrtho(-15.0, 15.0, -15.0 * (GLfloat)h / (GLfloat)w, 15.0 * (GLfloat)h / (GLfloat)w, -10.0, 10.0);
     else
-        //gluOrtho2D(-5.0*(GLfloat)w / (GLfloat)h, 5.0*(GLfloat)w / (GLfloat)h, -5.0, 5.0);
-        glOrtho(-15.0*(GLfloat)w / (GLfloat)h, 15.0*(GLfloat)w / (GLfloat)h, -15.0, 15.0, -10.0, 10.0);
+        gluOrtho2D(-2.0*(GLfloat)w / (GLfloat)h, 2.0*(GLfloat)w / (GLfloat)h, -2.0, 2.0);
+        //glOrtho(-15.0*(GLfloat)w / (GLfloat)h, 15.0*(GLfloat)w / (GLfloat)h, -15.0, 15.0, -10.0, 10.0);
     //gluPerspective(60.0, (GLfloat)w / (GLfloat)h, 1.0, 20.0);
 }
 
