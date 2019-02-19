@@ -15,7 +15,7 @@ public:
     // stride dim=3表示xyz三个坐标分量；dim=2表示xy;
     // num表示Q的个数, 也等于uArr数组的长度 num = n + 1；
     // return dist sum or error(-1)
-    static double generateUparameter(const double* qArr, int num, int dim, double* uArr);
+    static double generateUparameter(const double* qArr, int num, int dim, double* uArr, int type = 0);
     int generateUparameter(InterpolationCurve* crv);
     
 
@@ -27,6 +27,8 @@ public:
     // or size = len + order + 2 if derivate ends are set.
     static int generateKnots(const double* uArr, int len, int order, double* knotArr, bool derivIsSet = false);
     int generateCrvKnots(InterpolationCurve* crv);
+
+    static std::vector<double> generateKonts(const double* uArr, int uLen, int h, int order);
     
 
     // 此函数算法见<<the nurbs books>>  P74
@@ -52,14 +54,19 @@ public:
     static int findSpan(int p, double u, const std::vector<double>& U);
     static std::pair<int, int> findSpanMult(int p, double u, const std::vector<double>& U);
     static int basisFuns(int idx, int p, double u, const std::vector<double>& knotVec, std::vector<double>* N);
+    static int basisFuns(int idx, int p, double u, const std::vector<double>& knotVec, double N[]);
     // Make sure Q size is n+1
     // intput: Q, knotVec, D0, DN
     // output: P of n+3 elems
     int solveTridiagonal(const std::vector<double>& Q, const std::vector<double>& knotVec, double P1, double Pn1, std::vector<double>* P);
 
+    // store matrix elements row by row
     int constructMatrix(const std::vector<double>& uVec, 
                         const std::vector<double>& knotArr, 
                         int p, std::vector<double>* A, bool extend = false);
+    int constructMatrixN(const std::vector<double>& uVec,
+                         const std::vector<double>& knotArr,
+                         int p, std::vector<double>* N);
 
     int generateCrvControlPoints(InterpolationCurve* crv, bool tri = true);
     //int plotNurbs(const BSpline& crv);
@@ -88,6 +95,7 @@ public:
     static int curveKnotIns(
         const std::vector<double>& U, const std::vector<double>& CP, int dim, int p, double u, int h,
         std::vector<double>* UQ, std::vector<double>* Qw);
+
 };
 
 #endif // !__NURBSBASE__

@@ -32,7 +32,7 @@ NurbsBase::~NurbsBase()
 
 }
 
-double NurbsBase::generateUparameter(const double * qArr, int num, int dim, double * uArr)
+double NurbsBase::generateUparameter(const double * qArr, int num, int dim, double * uArr, int type)
 {
     //cout << "toShowInter address:" << &toShowInter << endl;
     if (uArr == nullptr || qArr == nullptr || num < 2)
@@ -55,7 +55,10 @@ double NurbsBase::generateUparameter(const double * qArr, int num, int dim, doub
             distArr[i] += tmp * tmp;
         }
         distArr[i] = std::sqrt(distArr[i]);
-        distArr[i] = std::sqrt(distArr[i]); // d_k = sqrt(|Q_k - Q_k+1|)
+        if (type == 0)
+        {
+            distArr[i] = std::sqrt(distArr[i]); // d_k = sqrt(|Q_k - Q_k+1|)
+        }
         distSum += distArr[i];
     }
 
@@ -73,7 +76,7 @@ int NurbsBase::generateUparameter(InterpolationCurve* crv)
     if (num < 2)
         return -1;
     std::vector<double> uVec(num);
-    generateUparameter(&(crv->getInterPointCoords()[0]), num, crv->dimension(), &uVec[0]);
+    generateUparameter(&(crv->getInterPointCoords()[0]), num, crv->dimension(), &uVec[0], 1);
     crv->setUparam(std::move(uVec));
     return 0;
 }
@@ -135,6 +138,29 @@ int NurbsBase::generateCrvKnots(InterpolationCurve* crv)
 
     (*crv).setKnots(std::move(knotVecTmp));
     return 0;
+}
+
+std::vector<double> NurbsBase::generateKonts(const double * uArr, int uLen, int h, int order)
+{
+    if (uArr == nullptr || order < 2 || h < (order - 1) || uLen <= h)
+        return std::vector<double>();
+
+    int p = order - 1;
+    vector<double> knotArr(h + p + 2, 0.0);
+    for (size_t i = 0; i < order; ++i)
+    {
+        knotArr[knotArr.size() - 1 - i] = 1.0;
+    }
+
+    double d = 1.0*uLen / (h - p + 1);
+    for (size_t j = 0; j <= h - p; ++j)
+    {
+        double tmp = j * d;
+        int i = int(tmp);
+        double a = tmp - i;
+        knotArr[p + j] = (1 - a)*uArr[i] + a * uArr[i+1];
+    }
+    return knotArr;
 }
 
 double NurbsBase::oneBasicFuns(int p, int m, const double U[], int i, double u)
@@ -229,7 +255,15 @@ int NurbsBase::basisFuns(int idx, int p, double u, const std::vector<double>& kn
     assert(N != nullptr);
     assert(idx >= 0 && idx <= knotVec.size() - 1 - p - 1); // m-p-1 = n -2
     N->resize(p + 1);
-    (*N)[0] = 1;
+    return basisFuns(idx, p, u, knotVec, &(*N)[0]);  
+}
+
+int NurbsBase::basisFuns(int idx, int p, double u, const std::vector<double>& knotVec, double N[])
+{
+    assert(N != nullptr);
+    assert(idx >= 0 && idx <= knotVec.size() - 1 - p - 1); // m-p-1 = n -2
+    // N[] must have p+1 size space
+    N[0] = 1;
     std::vector<double> left(p + 1, 0);
     std::vector<double> right(p + 1, 0);
 
@@ -240,13 +274,13 @@ int NurbsBase::basisFuns(int idx, int p, double u, const std::vector<double>& kn
         double saved = 0;
         for (int r = 0; r < j; ++r)
         {
-            double temp = (*N)[r] / (right[r + 1] + left[j - r]);
-            (*N)[r] = saved + right[r + 1]*temp;
+            double temp = N[r] / (right[r + 1] + left[j - r]);
+            N[r] = saved + right[r + 1] * temp;
             saved = left[j - r] * temp;
         }
-        (*N)[j] = saved;
+        N[j] = saved;
     }
-  
+
     return 0;
 }
 
@@ -334,6 +368,35 @@ int NurbsBase::constructMatrix(const std::vector<double>& uVec,
 
     }
 
+    return 0;
+}
+
+int NurbsBase::constructMatrixN(const std::vector<double>& uVec, 
+    const std::vector<double>& knotArr, 
+    int p, std::vector<double>* N)
+{
+    if (N == nullptr)
+    {
+        return -1;
+    }
+    int n = knotArr.size() - p - 2;
+    // following annotated code is same to routine below.
+    /*N->clear();
+    N->resize(uVec.size()*(n + 1));
+    for (size_t i = 0; i < uVec.size(); ++i)
+    {
+        for (int j = 0; j <= n; ++j)
+        {
+            (*N)[i*(n+1) + j] = oneBasicFuns(p, (int)(knotArr.size() - 1), &(knotArr[0]), j, uVec[i]);
+        }            
+    }*/
+    vector<double> tmp(uVec.size()*(n + 1), 0.0);
+    for (size_t i = 0; i < uVec.size(); ++i)
+    {
+        int span = findSpan(p, uVec[i], knotArr);
+        basisFuns(span, p, uVec[i], knotArr, &tmp[i*(n + 1) + span - p]);
+    }
+    N->swap(tmp);
     return 0;
 }
 
@@ -431,7 +494,7 @@ int NurbsBase::generateCrvControlPoints(InterpolationCurve * crv, bool tri)
         cout << uVec;
         cout << "knots are:";
         cout << knotVec;
-        std::vector<double> A;        
+        std::vector<double> A;        // store data row by row
         if (constructMatrix(uVec, knotVec, (*crv).p(), &A, (*crv).getDerivFlag()) == -1)
         {
             cerr << "matrix construct error" << endl;
@@ -845,6 +908,3 @@ int NurbsBase::curveKnotIns(
     }
     return 0;
 }
-
-
-
