@@ -942,3 +942,51 @@ int NurbsBase::curveKnotIns(
     }
     return 0;
 }
+
+BSpline NurbsBase::splineFitting(const vector<double>& ptsCoordVec, int npt, int h, int p)
+{   
+    assert(npt > h);
+    assert(h >= p);
+    assert(p >= 1);
+   
+    int dim = static_cast<int>(ptsCoordVec.size()) / npt;
+    vector<double> Q(ptsCoordVec);
+
+    InterpolationCurve crv;
+    crv.setInterPointCoords(std::move(Q));
+    generateUparameter(&crv);
+    auto& uParam = crv.getUparam();
+    auto knotVec = generateKonts(&uParam[0], crv.getInterPointNum(), h, p + 1);
+    vector<double> N;
+    constructMatrixN(uParam, knotVec, p, &N);
+    auto& QCoords = crv.getInterPointCoords();
+    MatrixXd R(uParam.size() - 2, dim);
+    int k = 0;
+    for (int j = 0; j < dim; ++j)
+    {
+        for (size_t i = 1; i < uParam.size() - 1; ++i)
+        {
+            R(k++) = QCoords[dim*i + j] - N[(h + 1)*i + 0] * QCoords[j] - N[(h + 1)*i + h] * QCoords[QCoords.size() - dim + j];
+        }
+    }
+    MatrixXd eNT(h + 1, uParam.size());
+    for (size_t i = 0; i < N.size(); ++i)
+    {
+        eNT(i) = N[i];
+    }
+    MatrixXd eN = eNT.transpose();
+    auto eNr = eN.block(1, 1, uParam.size() - 2, h - 1);
+    MatrixXd eNrTR = eNr.transpose()*R;
+    MatrixXd eNrTeNr = eNr.transpose()*eNr;
+    EquationSolver slr(eNrTeNr, eNrTR);
+    vector<double> xx(dim*(h - 1));
+    slr.getSolution(&xx[0]);
+    vector<double> P(dim*(h + 1));
+    for (int i = 0; i < dim; ++i)
+    {
+        P[i] = QCoords[i];
+        P[P.size() - dim + i] = QCoords[QCoords.size() - dim + i];
+    }
+    std::copy(xx.begin(), xx.end(), P.begin() + dim);
+    return BSpline(dim, p, &knotVec[0], &P[0], h + 1);
+}

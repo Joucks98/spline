@@ -96,6 +96,13 @@ public:
     static int curveKnotIns(
         const std::vector<double>& U, const std::vector<double>& CP, int dim, int p, double u, int h,
         std::vector<double>* UQ, std::vector<double>* Qw);
+    // ptsCoordVec: input fitting points coordinate array with len points, 
+    //              ordered by encounter order along the spline that you sought after.
+    // h+1: spline control points number
+    // p: spline degree
+    // make sure: npt > h >= p >= 1, if npt==h+1, function return an interpolation spline.
+    BSpline splineFitting(const std::vector<double>& ptsCoordVec, int npt, int h, int p);
+    
 
 };
 
