@@ -135,9 +135,9 @@ vector<double> pointPairsDistance(const double * startPtCoords, const double * e
 double polylineLength(const double * startPtCoords, const double * endPtCoords, int dim, int numSections);
 double polylineLength(const double* ptCoords, int dim, int numPts);
 vector<double> accumulatePolylineLength(const double* coords, int dim, int num);
-vector<double> linspace(double a, double b, int num = 100); // evenly distribute num values in [a, b] interval
-vector<double> midPartition(const double* uArr, int num);
-vector<double> subdivision(const double* uArr, int num);
+list<double> linspace(double a, double b, int num = 100); // evenly distribute num values in [a, b] interval
+list<double> midPartition(const list<double>& iUList);
+void subdivision(list<double>* ioUList);
 
 
 #endif // !__GEOMETRYCALC_H__

@@ -321,7 +321,7 @@ vector<double> accumulatePolylineLength(const double * coords, int dim, int num)
     return re;
 }
 
-vector<double> linspace(double a, double b, int num/* = 100*/)
+list<double> linspace(double a, double b, int num/* = 100*/)
 {
     assert(num > 0);
     assert(b > a);
@@ -329,17 +329,16 @@ vector<double> linspace(double a, double b, int num/* = 100*/)
     {
         return{ b };
     }
-    vector<double> series(num, 0.0);
-    std::iota(series.begin(), series.end(), 0.0);
-    transform(series.begin(), series.end(), series.begin(), [a, b, step = 1.0/(num - 1)](auto& it) {
-        return a + (b - a) * it * step; });
+    list<double> series(num, 0.0);
+    generate(series.begin(), series.end(), [a, m = 0, step = (b-a)/(num - 1)]() mutable {
+        return a + step * m++; });
     return series;
 }
 
-vector<double> midPartition(const double * uArr, int num)
+list<double> midPartition(const list<double>& iUList)
 {
-    vector<double> tmp(num);
-    std::adjacent_difference(uArr, uArr + num, tmp.begin(), [](auto&a, auto& b) {
+    list<double> tmp(iUList.size());
+    std::adjacent_difference(begin(iUList), end(iUList), begin(tmp), [](auto&a, auto& b) {
         return (a + b)*.5;
     });
     tmp.erase(tmp.begin());
@@ -348,12 +347,10 @@ vector<double> midPartition(const double * uArr, int num)
     return tmp;
 }
 
-vector<double> subdivision(const double* uArr, int num)
+void subdivision(list<double>* ioUList)
 {
-    auto interUSeries = midPartition(uArr, num);
-    vector<double> tmp((num << 1) - 1);
-    std::merge(uArr, uArr+num, interUSeries.begin(), interUSeries.end(), tmp.begin());
-    return tmp;
+    auto interUSeries = midPartition(*ioUList);
+    ioUList->merge(interUSeries);
 }
 
 
