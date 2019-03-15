@@ -2,7 +2,7 @@
 #include <numeric> // std::inner_product
 #include "GeometryCalc.h"
 using namespace std;
-
+using namespace gc;
 
 namespace
 {
@@ -252,56 +252,68 @@ double twoPointDist(const double p1[], const double p2[], int dim)
     return sqrt(std::inner_product(p1, p1 + dim, p2, 0.0, std::plus<double>(), op2));
 }
 
-vector<double> pointPairsDistance(const double * startPtCoords, const double * endPtCoords, int dim, int numSections)
+
+list<double> pointPairsDistance(const double * startPtCoords, const double * endPtCoords, int dim, int numSections)
 {
     assert(startPtCoords != nullptr);
     assert(endPtCoords != nullptr);
     assert(numSections > 0);
 
-    vector<double> re(numSections,0.0);
-    for (int i = 0, base = 0; i < numSections; ++i, base += dim)
+    list<double> re(numSections,0.0);
+    std::generate(begin(re), end(re), [&, base = -dim]()mutable {
+        return base += dim, twoPointDist(startPtCoords + base, endPtCoords + base, dim);
+    });
+    /*for (int i = 0, base = 0; i < numSections; ++i, base += dim)
     {
         re[i] = twoPointDist(startPtCoords + base, endPtCoords + base, dim);
-    }
+    }*/
     return re;
 
 }
 
-double polylineLength(const double * startPtCoords, const double * endPtCoords, int dim, int numSections)
+
+double polylineLength(const list<Point3d>& ptList)
 {
-    assert(startPtCoords != nullptr);
-    assert(endPtCoords != nullptr);
-    assert(numSections > 0);
-
-    double sum = 0.0;
-    for (int i = 0, base = 0; i < numSections; ++i, base += dim)
+    double ss = 0.0;
+    auto itr = begin(ptList);
+    while (next(itr) != end(ptList))
     {
-        sum += twoPointDist(startPtCoords + base, endPtCoords + base, dim);
+        Point3d ptCur = (*itr++);
+        ss += (ptCur- *itr).len();
     }
-    return sum;
+    return ss;    
 }
-
 double polylineLength(const double * ptCoords, int dim, int numPts)
 {
-    assert(ptCoords != nullptr);
-    assert(numPts > 0);
-    if (numPts < 2)
-        return 0.0;
-
-    double sum = 0.0;
-    const double* cur = &ptCoords[0];
-    for (int i = 0; i < numPts - 1; ++i, cur += dim)
-    {
-        sum += twoPointDist(cur, cur + dim, dim);        
-    }
-    return sum;
-    //vector<double>tmp(pointPairsDistance(ptCoords, ptCoords + dim, dim, numPts - 1));
-    //return std::accumulate(tmp.begin(), tmp.end(), 0.0);
+    //assert(ptCoords != nullptr);
+    //assert(numPts > 0);
+    //if (numPts < 2)
+    //    return 0.0;
+    //double sum = 0.0;
+    //const double* cur = &ptCoords[0];
+    //for (int i = 0; i < numPts - 1; ++i, cur += dim)
+    //{
+    //    sum += twoPointDist(cur, cur + dim, dim);        
+    //}
+    //return sum;
+    list<double> tmp(pointPairsDistance(ptCoords, ptCoords + dim, dim, numPts - 1));
+    return std::accumulate(tmp.begin(), tmp.end(), 0.0);
 }
 
+list<double> accumulatePolylineLength(const list<Point3d>& ptList)
+{
+    assert(!ptList.empty());
+    list<double> tmp(ptList.size(), 0.0);
 
+    generate(++begin(tmp), end(tmp), [itr = begin(ptList)]() mutable {
+        Point3d ptCur = (*itr++);
+        return (ptCur - *itr).len();
+    }); 
+    partial_sum(begin(tmp), end(tmp), begin(tmp));
+    return tmp;
+}
 
-vector<double> accumulatePolylineLength(const double * coords, int dim, int num)
+list<double> accumulatePolylineLength(const double * coords, int dim, int num)
 {
     assert(coords != nullptr);
     assert(num > 0);
@@ -309,16 +321,16 @@ vector<double> accumulatePolylineLength(const double * coords, int dim, int num)
     if (num == 1)
         return{ 0.0 };
 
-    //vector<double> re(num, 0.0);
-    //vector<double> tmp(pointPairsDistance(coords, coords + dim, dim, num - 1));
-    //std::partial_sum(tmp.begin(), tmp.end(), re.begin()+1);
-    vector<double> re(num, 0.0);
-    const double* cur = &coords[0];
-    for (int i = 0; i < num - 1; ++i, cur += dim)
-    {
-        re[i + 1] = re[i] + twoPointDist(cur, cur + dim, dim);     
-    }
-    return re;
+    list<double> tmp(pointPairsDistance(coords, coords + dim, dim, num - 1));
+    tmp.push_front(0.0);
+    partial_sum(begin(tmp), end(tmp), begin(tmp));
+    return tmp;
+    /* equivalent effect:
+    auto itr = begin(tmp);
+    std::generate(begin(tmp), end(tmp), [&itr, ss = 0.0]()mutable {
+        return ss += (*itr++);
+    });*/
+    
 }
 
 list<double> linspace(double a, double b, int num/* = 100*/)
@@ -342,8 +354,6 @@ list<double> midPartition(const list<double>& iUList)
         return (a + b)*.5;
     });
     tmp.erase(tmp.begin());
-    //vector<double> re(2*num - 1);
-    //std::merge(uArr, uArr + num, tmp.begin() + 1, tmp.end(), re.begin());
     return tmp;
 }
 
@@ -465,4 +475,23 @@ int GrahamConvexHull::Graham()
     std::vector<tsPoint> tmp = P._Get_container();
     m_list.swap(tmp);*/
     return 0;
+}
+
+double Point3d::dot(const Point3d & r) const
+{
+    //const double * tmp = r;
+    //return std::inner_product(tmp, tmp + 3, *this, 0.0);
+    return m_data[0]*r.m_data[0] + m_data[1] * r.m_data[1] + m_data[2] * r.m_data[2];
+}
+
+Point3d Point3d::crs(const Point3d & r) const
+{
+    return Point3d(m_data[1]* r.m_data[2] - m_data[2]*r.m_data[1],
+        -(m_data[0] * r.m_data[2] - m_data[2] * r.m_data[0]),
+        m_data[0] * r.m_data[1] - m_data[1] * r.m_data[0]);
+}
+
+double Point3d::len() const
+{
+    return std::sqrt(this->dot(*this));
 }

@@ -4,6 +4,8 @@
 #include <vector>
 #include <xutility>
 
+using std::vector;
+
 class BSpline;
 class InterpolationCurve;
 class NurbsBase
@@ -28,7 +30,7 @@ public:
     static int generateKnots(const double* uArr, int len, int order, double* knotArr, bool derivIsSet = false);
     int generateCrvKnots(InterpolationCurve* crv);
 
-    static std::vector<double> generateKonts(const double* uArr, int uLen, int h, int order);
+    static vector<double> generateKonts(const double* uArr, int uLen, int h, int order);
     
 
     // 此函数算法见<<the nurbs books>>  P74
@@ -51,22 +53,22 @@ public:
     }
     */
     double oneBasicFuns(int p, int m, const double U[], int i, double u);
-    static int findSpan(int p, double u, const std::vector<double>& U);
-    static std::pair<int, int> findSpanMult(int p, double u, const std::vector<double>& U);
-    static int basisFuns(int idx, int p, double u, const std::vector<double>& knotVec, std::vector<double>* N);
-    static int basisFuns(int idx, int p, double u, const std::vector<double>& knotVec, double N[]);
+    static int findSpan(int p, double u, const vector<double>& U);
+    static std::pair<int, int> findSpanMult(int p, double u, const vector<double>& U);
+    static int basisFuns(int idx, int p, double u, const vector<double>& knotVec, vector<double>* N);
+    static int basisFuns(int idx, int p, double u, const vector<double>& knotVec, double N[]);
     // Make sure Q size is n+1
     // intput: Q, knotVec, D0, DN
     // output: P of n+3 elems
-    int solveTridiagonal(const std::vector<double>& Q, const std::vector<double>& knotVec, double P1, double Pn1, std::vector<double>* P);
+    int solveTridiagonal(const vector<double>& Q, const vector<double>& knotVec, double P1, double Pn1, vector<double>* P);
 
     // store matrix elements row by row
-    int constructMatrix(const std::vector<double>& uVec, 
-                        const std::vector<double>& knotArr, 
-                        int p, std::vector<double>* A, bool extend = false);
-    int constructMatrixN(const std::vector<double>& uVec,
-                         const std::vector<double>& knotArr,
-                         int p, std::vector<double>* N);
+    int constructMatrix(const vector<double>& uVec, 
+                        const vector<double>& knotArr, 
+                        int p, vector<double>* A, bool extend = false);
+    int constructMatrixN(const vector<double>& uVec,
+                         const vector<double>& knotArr,
+                         int p, vector<double>* N);
 
     int generateCrvControlPoints(InterpolationCurve* crv, bool tri = true);
     //int plotNurbs(const BSpline& crv);
@@ -79,29 +81,29 @@ public:
 
     /*DersBasisFun:求基函数的各级倒数，
     output:ders是(n+1)x(p+1)的矩阵，0-n阶的基函数的导数，*/
-    static void dersBasisFuns(int i, double u, int p, int n, const std::vector<double>& U, double**ders);
+    static void dersBasisFuns(int i, double u, int p, int n, const vector<double>& U, double**ders);
     
 
     //==========================================================//
     /*求B样条曲线的各阶导数，
     output:CK是一个（d+1）x3的矩阵，第0行表示曲线上的点，第1行表示改点的一阶导数，以此类推*/
-    static void curveDer_1(/*int n, */int p, const std::vector<double>& U, 
-        const std::vector<double>& PC, double u, int d, int dim, std::vector<double>* CK);
+    static void curveDer_1(/*int n, */int p, const vector<double>& U, 
+        const vector<double>& PC, double u, int d, int dim, vector<double>* CK);
     /*output: value and d derivates in parameter u*/
-    bool curveDer_1(const BSpline& crv, double u, int d, std::vector<double>* der);
+    bool curveDer_1(const BSpline& crv, double u, int d, vector<double>* der);
     
     double curvature(const BSpline& crv, double u);
-    int evaluate(const BSpline& crv, double u, std::vector<double>* val);
-    static std::vector<double> deBoor(const BSpline& crv, double u);
+    int evaluate(const BSpline& crv, double u, vector<double>* val);
+    static vector<double> deBoor(const BSpline& crv, double u);
     static int curveKnotIns(
-        const std::vector<double>& U, const std::vector<double>& CP, int dim, int p, double u, int h,
-        std::vector<double>* UQ, std::vector<double>* Qw);
+        const vector<double>& U, const vector<double>& CP, int dim, int p, double u, int h,
+        vector<double>* UQ, vector<double>* Qw);
     // ptsCoordVec: input fitting points coordinate array with len points, 
     //              ordered by encounter order along the spline that you sought after.
     // h+1: spline control points number
     // p: spline degree
     // make sure: npt > h >= p >= 1, if npt==h+1, function return an interpolation spline.
-    BSpline splineFitting(const std::vector<double>& ptsCoordVec, int npt, int h, int p);
+    BSpline splineFitting(const vector<double>& ptsCoordVec, int npt, int h, int p);
     
 
 };

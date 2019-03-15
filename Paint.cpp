@@ -115,7 +115,7 @@ int paint::showInterpolationCurve(const InterpolationCurve &crv, int modeType)
         // to maintain the behavior:positive offsetlen indicates outside contraction
         ///m_offsetLen *= chordPolygonArea() > 0 ? -1 : 1;
         auto uSeries = linspace(0, 1, 1000);
-        crv.getOffsetPt((crv.chordPolygonArea() > 0 ? -1 : 1)*crv.getOffsetLength(), &uSeries[0], (int)uSeries.size(), &offsetPtVec);
+        crv.getOffsetPt((crv.chordPolygonArea() > 0 ? -1 : 1)*crv.getOffsetLength(), uSeries, &offsetPtVec);
         if (crv.isInFocus())
             glBegin(GL_LINE_STRIP);
         else

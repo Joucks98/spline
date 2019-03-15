@@ -20,7 +20,8 @@ typedef struct tPointStruct {
     int vnum;
     tPointd v;
     bool del;
-    tPointStruct(int i, double x, double y, bool b) :vnum(i), v{ x,y }, del(b)
+    tPointStruct(int i, double x, double y, bool b) 
+        :vnum(i), v{ x,y }, del(b)
     {}
     bool operator ==(const tPointStruct& a)
     {
@@ -30,7 +31,54 @@ typedef struct tPointStruct {
     //operator bool() { return del; }
 }tsPoint;
 
-//typedef double tVectord[2];
+namespace gc
+{
+    class Point3d
+    {
+    public:
+        Point3d(double a = 0.0, double b = 0.0, double c = 0.0)
+            :m_data{ a,b,c }
+        {}
+        Point3d(const double p[3])
+            :m_data{ p[0], p[1], p[2] }
+        {}
+        Point3d(const Point3d&) = default;
+        Point3d& operator =(const Point3d&) = default;
+        double x() const{
+            return m_data[0];
+        }
+        double y() const{
+            return m_data[1];
+        }
+        double z() const{
+            return m_data[2];
+        }
+        const double & operator[](int id) const{
+            assert(!(id < 0 || id > 2));
+            return m_data[id];
+        }
+        double & operator[](int id){
+            assert(!(id < 0 || id > 2));
+            return m_data[id];
+        }
+        Point3d operator-(const Point3d& r) const
+        {
+            return Point3d(m_data[0] - r.m_data[0],
+                m_data[1] - r.m_data[1],
+                m_data[2] - r.m_data[2]);
+        }
+        double dot(const Point3d& r) const;
+        Point3d crs(const Point3d& r) const;
+        double len() const;
+        operator const double*() const{
+            return m_data;
+        }
+    private:
+        double m_data[3];
+    };
+
+}
+
 
 double Area2(const tPointd a, const tPointd b, const tPointd c);
 
@@ -130,11 +178,13 @@ vector<tPointi> lineBresenham(int xBegin, int yBegin, int xEnd, int yEnd);
 vector<pair<int, int>> circlePixels(int xCenter, int yCenter, int radius);
 
 double twoPointDist(const double p1[], const double p2[], int dim);
-vector<double> pointPairsDistance(const double * startPtCoords, const double * endPtCoords, int dim, int numSections);
 
-double polylineLength(const double * startPtCoords, const double * endPtCoords, int dim, int numSections);
+list<double> pointPairsDistance(const double * startPtCoords, const double * endPtCoords, int dim, int numSections);
+
+double polylineLength(const list<gc::Point3d>&);
 double polylineLength(const double* ptCoords, int dim, int numPts);
-vector<double> accumulatePolylineLength(const double* coords, int dim, int num);
+list<double> accumulatePolylineLength(const list<gc::Point3d>&);
+list<double> accumulatePolylineLength(const double* coords, int dim, int num);
 list<double> linspace(double a, double b, int num = 100); // evenly distribute num values in [a, b] interval
 list<double> midPartition(const list<double>& iUList);
 void subdivision(list<double>* ioUList);

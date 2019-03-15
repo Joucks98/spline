@@ -14,6 +14,7 @@
 
 using namespace Eigen;
 using namespace Interpolation;
+using gc::Point3d;
 
 double Interpolation::norm2(const double v[], int dim)
 {
@@ -312,7 +313,7 @@ double InterpolationCurve::chordPolygonArea() const
     return sumArea;
 }
 
-double InterpolationCurve::curveLength(double a, double b, stlDVec* polylineCoords) const
+double InterpolationCurve::curveLength(double a, double b, list<Point3d>* polylineCoords) const
 {
     assert(b > a);
     assert(a >= m_uParam[0]);
@@ -320,39 +321,26 @@ double InterpolationCurve::curveLength(double a, double b, stlDVec* polylineCoor
 
     int num = 1001;
     auto uSeries = linspace(a, b, num);
-    stlDVec coords = evaluate(uSeries);
+    auto coords = evaluate(uSeries);
+
     double pre = -1.;
-    double cur = polylineLength(&coords[0], m_dimension, num);
+    double cur = polylineLength(coords);
     while (abs(cur - pre) > 1e-6)
     {
-        pre = cur;
-
-        auto interUSeries = midPartition(&uSeries[0], num);
+        auto interUSeries = midPartition(uSeries);
         auto interCoords = evaluate(interUSeries);
-        double s1 = polylineLength(&coords[0], &interCoords[0], m_dimension, num - 1);
-        double s2 = polylineLength(&interCoords[0], &coords[m_dimension], m_dimension, num - 1);
-        cur = s1 + s2;
+        uSeries.merge(interUSeries);
 
-
-        stlDVec tmp((num << 1) - 1);
-        std::merge(uSeries.begin(), uSeries.end(), interUSeries.begin(), interUSeries.end(), tmp.begin());
-        uSeries.swap(tmp);
-        stlDVec tmpCoords(((num << 1) - 1 )*m_dimension);
-        int base = 0, k = 0;
-        for (int i = 0; i < num - 1; ++i)
+        vector<decltype(coords.begin())> itrVec(coords.size() - 1);
+        generate(itrVec.begin(), itrVec.end(), [sItr = coords.begin()]() mutable {return ++sItr; });
+        auto iter = itrVec.begin();
+        while (iter != itrVec.end())
         {
-            std::copy(&coords[base], &coords[base] + m_dimension, &tmpCoords[k]);
-            std::copy(&interCoords[base], &interCoords[base] + m_dimension, &tmpCoords[k + m_dimension]);
-            base += m_dimension;
-            k += (m_dimension << 1);
+            coords.splice(*iter++, interCoords, begin(interCoords));
         }
-        std::copy(&coords[base], &coords[base] + m_dimension, &tmpCoords[k]);
-        coords.swap(tmpCoords);
-        num = (num << 1) - 1;
 
-        //num = (num<<1) - 1; // duplicate interval number, by subdividing old intervals
-        //coords = evaluate(linspace(a, b, num));
-        //cur = polylineLength(&coords[0], m_dimension, num);
+        pre = cur;
+        cur = polylineLength(coords);
     }
     if (polylineCoords)
     {
@@ -381,29 +369,31 @@ double InterpolationCurve::curveLength(double a, double b, stlDVec* polylineCoor
 //    return re;
 //}
 
-InterpolationCurve::stlDVec InterpolationCurve::evaluate(const stlDVec & uSeries) const
+list<Point3d> InterpolationCurve::evaluate(const list<double> & uSeries) const
 {
-    stlDVec re(uSeries.size()*m_dimension);
-    int base = 0;
+    //stlDVec re(uSeries.size()*m_dimension);
+    //int base = 0;
+    list<Point3d> re;
     for (auto u: uSeries)
     {
         auto tmp = NurbsBase::deBoor(*this, u);
-        std::copy(tmp.begin(), tmp.end(), re.begin() + base);
-        base += m_dimension;
+        //std::copy(tmp.begin(), tmp.end(), re.begin() + base);
+        //base += m_dimension;
+        re.emplace_back(tmp[0], tmp[1]);
     }
     return re;
 }
 
-InterpolationCurve::stlDVec InterpolationCurve::linspacePoints(int num) const
+list<Point3d> InterpolationCurve::linspacePoints(int num) const
 {
     assert(num > 0);
     if (num == 1)
     {
         return{ m_interPointCoordVec.end() - m_dimension, m_interPointCoordVec.end() };
     }
-    stlDVec polylineCoords;
+    list<Point3d> polylineCoords;
     double len = curveLength(m_uParam[0], m_uParam.back(), &polylineCoords);
-    stlDVec tmp = accumulatePolylineLength(&polylineCoords[0], m_dimension, (int)polylineCoords.size() / m_dimension);
+    list<double> tmp = accumulatePolylineLength(polylineCoords);
     //double step = len / (num - 1);
     //double stake = step;
     //stlDVec re(num*m_dimension);
@@ -417,15 +407,16 @@ InterpolationCurve::stlDVec InterpolationCurve::linspacePoints(int num) const
     //    }
     //}    
     //std::copy(polylineCoords.end() - m_dimension, polylineCoords.end(), re.end() - m_dimension);
-    stlDVec re(num*m_dimension);
-    auto stakes = linspace(0, len, num);
-    for (int k = 0; k < num-1; ++k)
+    list<double> stakes = linspace(0, len, num);
+    stakes.pop_back();  // no need the last value.
+    list<Point3d> re;
+    for (auto ss: stakes)
     {
-        auto itr = std::lower_bound(tmp.begin(), tmp.end(), stakes[k]);
+        auto itr = std::lower_bound(tmp.begin(), tmp.end(), ss);
         auto j = distance(tmp.begin(), itr);
-        std::copy(&polylineCoords[j*m_dimension], &polylineCoords[j*m_dimension] + m_dimension, &re[k*m_dimension]);
+        re.emplace_back(*next(begin(polylineCoords), j));        
     }
-    std::copy(polylineCoords.end() - m_dimension, polylineCoords.end(), re.end() - m_dimension);
+    re.emplace_back(*prev(end(polylineCoords)));
     return re;
 }
 
@@ -682,16 +673,16 @@ void InterpolationCurve::getOffsetPt(double offsetRatio, double u, stlDVec * off
     return;
 }
 
-void InterpolationCurve::getOffsetPt(double offsetRatio, const double u[], int num, stlDVec * offsetPts) const
+void InterpolationCurve::getOffsetPt(double offsetRatio, const list<double>& uList, stlDVec * offsetPts) const
 {
     assert(offsetPts != nullptr);
     //assert(sizeof(u) / sizeof(double) == num);
     offsetPts->clear();
-    offsetPts->reserve(m_dimension*num);
-    for (int i = 0; i < num; ++i)
+    offsetPts->reserve(m_dimension*uList.size());
+    for (auto u: uList)
     {
         std::vector<double> tmp;
-        getOffsetPt(offsetRatio, u[i], &tmp);
+        getOffsetPt(offsetRatio, u, &tmp);
         std::copy(tmp.begin(), tmp.end(), std::back_inserter(*offsetPts));
     }
 }

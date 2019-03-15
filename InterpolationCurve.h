@@ -3,11 +3,17 @@
 
 #include <assert.h>
 #include <vector>
+#include <list>
 #include <iostream>
 #include "BSpline.h"
 
-using std::vector;
+namespace gc
+{
+    class Point3d;
+}
 
+using std::vector;
+using std::list;
 typedef enum
 {
     CRVERROR = -1,
@@ -78,12 +84,12 @@ public:
     virtual void clear() override;    
     double chordPolyLineLength() const;
     double chordPolygonArea() const;
-    double curveLength(double a = 0.0, double b = 1.0, stlDVec* polylineCoords = nullptr) const;
+    double curveLength(double a = 0.0, double b = 1.0, list<gc::Point3d>* polylineCoords = nullptr) const;
 
 
     //stlDVec evaluate(double u);
-    stlDVec evaluate(const stlDVec& uSeries) const;
-    stlDVec linspacePoints(int num) const; // num : equally spaced points number. 
+    list<gc::Point3d> evaluate(const list<double>& uSeries) const;
+    list<gc::Point3d> linspacePoints(int num) const; // num : equally spaced points number. 
 
     void getDerNorEndPts(double u, stlDVec* derPts, stlDVec* norPts) const;
     void getDerNorEndPts(const double u[], int num, stlDVec* allDerPts, stlDVec* allNorPts) const;
@@ -92,7 +98,7 @@ public:
     int FindNearestCurvePoint(const double Q[], stlDVec* crvPt = nullptr, double* u = nullptr) const;
     CURVESTATE SetClose(bool b);
     void getOffsetPt(double offsetRatio, double u, stlDVec* offsetPt) const;
-    void getOffsetPt(double offsetRatio, const double u[], int num, stlDVec* offsetPts) const;
+    void getOffsetPt(double offsetRatio, const list<double>& uList, stlDVec* offsetPts) const;
     
     void setOffsetLength(double l) { m_offsetLen = l; }
     double getOffsetLength() const { return m_offsetLen; };
