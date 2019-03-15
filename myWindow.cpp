@@ -2,7 +2,8 @@
 #include "myWindow.h"
 #include "GeometryCalc.h"
 #include "Paint.h"
-
+//#include <iostream>
+#include <fstream>
 using namespace paint;
 
 #define BMP_Header_Length 54
@@ -47,6 +48,7 @@ void myWindow::myInit()
 #include "EquationSolver.h"
 #include "NurbsBase.h"
 #include <numeric>
+
 BSpline fun()
 {
     double x[] = { -1.84, -0.73, 0.82, -1.99, -0.49, -0.15,
@@ -62,54 +64,19 @@ BSpline fun()
         pt[i] = make_pair(x[i], y[i]);
     }
     std::sort(begin(pt), end(pt), [](auto& a, auto& b) {return a.first < b.first; });
-    auto itr = begin(pt);
-    vector<double> Q;
-    while (itr != end(pt))
+    vector<double> pointCoords(2*n);    
+    for (size_t i = 0; i < pt.size(); ++i)
     {
-        Q.push_back(itr->first);
-        Q.push_back(itr->second);
-        itr = next(itr);
+        pointCoords[i<<1] = pt[i].first;
+        pointCoords[(i<<1) + 1] = pt[i].second;
     }
-    InterpolationCurve crv;
-    crv.setInterPointCoords(std::move(Q));
+    glColor3f(1.0f, 0.0f, 0.f);
+    glPointSize(10);
+    glBegin(GL_POINTS);
+    drawPoints(pointCoords.data(), n, 2);
+    glEnd();
     NurbsBase nurbsTool;
-    nurbsTool.generateUparameter(&crv);
-    auto& uParam = crv.getUparam();
-    int h = 7, p = 4;
-    int dim = 2;
-    auto knotVec = nurbsTool.generateKonts(&uParam[0], crv.getInterPointNum(), h, p + 1);
-    vector<double> N;
-    nurbsTool.constructMatrixN(uParam, knotVec, p, &N);
-    auto& QCoords = crv.getInterPointCoords();
-    MatrixXd R(uParam.size() - 2, dim);
-    int k = 0;
-    for (int j = 0; j < dim; ++j)
-    {
-        for (size_t i = 1; i < uParam.size() - 1; ++i)
-        {
-            R(k++) = QCoords[dim*i + j] - N[(h + 1)*i + 0] * QCoords[j] - N[(h + 1)*i + h] * QCoords[QCoords.size() - dim + j];
-        }
-    }
-    MatrixXd eNT(h + 1, uParam.size());
-    for (size_t i = 0; i < N.size(); ++i)
-    {
-        eNT(i) = N[i];
-    }
-    MatrixXd eN = eNT.transpose();
-    auto eNr = eN.block(1, 1, uParam.size() - 2, h - 1);
-    MatrixXd eNrTR = eNr.transpose()*R;
-    MatrixXd eNrTeNr = eNr.transpose()*eNr;
-    EquationSolver slr(eNrTeNr, eNrTR);
-    vector<double> xx(dim*(h - 1));
-    slr.getSolution(&xx[0]);
-    vector<double> P(dim*(h + 1));
-    for (int i = 0; i < dim; ++i)
-    {
-        P[i] = QCoords[i];
-        P[P.size() - dim + i] = QCoords[QCoords.size() - dim + i];
-    }
-    std::copy(xx.begin(), xx.end(), P.begin() + dim);
-    return BSpline(dim, p, &knotVec[0], &P[0], h + 1);
+    return nurbsTool.splineFitting(pointCoords, n, 7, 4);
 }
 void myWindow::myDisplay()
 {
@@ -130,15 +97,23 @@ void myWindow::myDisplay()
     //glDrawPixels(imagewidth, imageheight, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixeldata);
 
     //plotNurbs(fun());
-    auto bs = fun();
-    auto se = linspace(0, 1);
-    glBegin(GL_POINTS);
+    BSpline bs = fun();
+    auto se = linspace(0, 1, 1000);
+    NurbsBase nurbsTool;
+    //std::ofstream outFile("./curvature.txt", ios::trunc);
     for (auto u: se)
     {
         auto tmp = NurbsBase::deBoor(bs, u);
+        //auto sz = nurbsTool.curvature(bs, u);
+        //outFile <<'['<<u<<','<< sz <<']'<<','<< endl;
+        glColor3f(1.0f, 1.0f, 1.f);
+        glPointSize(5/**abs(sz)*/); // must before glBegin
+        glBegin(GL_POINTS);
         drawPoints(&tmp[0], 1, 2);
+        glEnd();
     }
-    glEnd();
+    //outFile.close();
+    
 
     for (auto& iCurve: m_crvVec)
     {
@@ -160,7 +135,7 @@ void myWindow::myDisplay()
                 for (int i = 0; i < m; ++i)
                 {
                     double mu = 0.0;
-                    if (iCurve.FindNearestCurvePoint(&pts[i*iCurve.dimension()], nullptr, &mu) == 0)
+                    if (iCurve.FindNearestCurvePoint(*next(begin(pts),i), nullptr, &mu) == 0)
                     {
                         uTmp.push_back(mu);
                     }
