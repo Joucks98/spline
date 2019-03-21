@@ -130,7 +130,9 @@ vector<tPointi> lineBresenham(int xBegin, int yBegin, int xEnd, int yEnd)
         y = yBegin;
     }
     int i = 0;
-    //(*output).resize(dx + 1, {0,0});  // resize error, but vector<tPointi> o(m) success.
+    // resize error when tPointi with type of int[2], 
+    // but vector<tPointi> o(m) can success, and return can work because the move semantic not copy.
+    //(*output).resize(dx + 1, {0,0});  
     while (x < xEnd)
     {
         output[i][0] = x;
@@ -480,7 +482,7 @@ int GrahamConvexHull::Graham()
 double Point3d::dot(const Point3d & r) const
 {
     //const double * tmp = r;
-    //return std::inner_product(tmp, tmp + 3, *this, 0.0);
+    //return std::inner_product(tmp, tmp + 3, *this, 0.0); // error, why?
     return m_data[0]*r.m_data[0] + m_data[1] * r.m_data[1] + m_data[2] * r.m_data[2];
 }
 

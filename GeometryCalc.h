@@ -9,12 +9,14 @@
 #include <assert.h>
 #include <algorithm>
 #include <xutility>
+#include <array>
 
 using std::pair;
 using std::vector;
 using std::list;
+using std::array;
 
-typedef int tPointi[2];
+typedef array<int,2> tPointi;
 typedef double tPointd[2];
 typedef struct tPointStruct {
     int vnum;
