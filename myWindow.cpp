@@ -98,7 +98,7 @@ void myWindow::myDisplay()
 
     //plotNurbs(fun());
     BSpline bs = fun();
-    auto se = linspace(0, 1, 1000);
+    auto se = linspace(0, 1, 40);
     NurbsBase nurbsTool;
     //std::ofstream outFile("./curvature.txt", ios::trunc);
     for (auto u: se)

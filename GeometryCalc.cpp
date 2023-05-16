@@ -436,10 +436,10 @@ int GrahamConvexHull::Graham()
     m_list1.push_front(reserve);
     int n = (int)m_list1.size();
 
-    auto iter = m_list1.begin();
-    auto preIter2 = iter;
-    auto preIter1 = ++iter;
-    auto curIter = ++iter;
+    auto tmp = m_list1.begin();
+    auto preIter2 = tmp;
+    auto preIter1 = ++tmp;
+    auto curIter = ++tmp;
     while (curIter != m_list1.end())
     {
         if (Area2(preIter2->v, preIter1->v, curIter->v) > 0)
@@ -450,10 +450,10 @@ int GrahamConvexHull::Graham()
         }
         else
         {
-            auto iter = m_list1.erase(preIter1);
-            curIter = iter;
-            preIter1 = --iter;
-            preIter2 = --iter;
+            auto tmp = m_list1.erase(preIter1);
+            curIter = tmp;
+            preIter1 = --tmp;
+            preIter2 = --tmp;
         }
     }
     /*std::stack<tsPoint, std::vector<tsPoint>> P;

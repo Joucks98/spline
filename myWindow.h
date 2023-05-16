@@ -5,8 +5,11 @@
 #include <vector>
 #include "InterpolationCurve.h"
 
-using namespace std;
+//using namespace std;
 using namespace Eigen;
+using std::string;
+using std::pair;
+using std::make_pair;
 
 class myWindow
 {

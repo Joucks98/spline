@@ -7,45 +7,15 @@
 static GLenum doubleBuffer = GL_TRUE;
 myWindow* pWindow = nullptr;
 
-void displayFunc()
-{
-    pWindow->myDisplay();
-}
-void reshapeFunc(int w, int h)
-{
-    pWindow->reshape(w, h);
-}
-
-void motionFunc(int x, int y)
-{
-    pWindow->myMotion(x, y);
-}
-void passiveMotionFunc(int x, int y)
-{
-    pWindow->passiveMotion(x, y);
-}
-
-void entryFunc(int state)
-{
-    pWindow->entryFunc(state);
-}
-
-void mouseFunc(int button, int state, int x, int y)
-{
-    pWindow->myMouse(button, state, x, y);
-}
-void keyFunc(unsigned char key, int x, int y)
-{
-    pWindow->myKey(key, x, y);
-}
-void specialKeyFunc(GLint key, GLint x, GLint y)
-{
-    pWindow->mySpecialKey(key, x, y);
-}
-void idleFunc()
-{
-    pWindow->idle();
-}
+void displayFunc()                                      { pWindow->myDisplay(); }
+void reshapeFunc(int w, int h)                          { pWindow->reshape(w, h);}
+void motionFunc(int x, int y)                           { pWindow->myMotion(x, y);}
+void passiveMotionFunc(int x, int y)                    { pWindow->passiveMotion(x, y);}
+void entryFunc(int state)                               { pWindow->entryFunc(state);}
+void mouseFunc(int button, int state, int x, int y)     { pWindow->myMouse(button, state, x, y); }
+void keyFunc(unsigned char key, int x, int y)           { pWindow->myKey(key, x, y);}
+void specialKeyFunc(GLint key, GLint x, GLint y)        { pWindow->mySpecialKey(key, x, y);}
+void idleFunc()                                         { pWindow->idle();}
 
 void Args(int argc, char** argv)
 {
@@ -57,9 +27,18 @@ void Args(int argc, char** argv)
 }
 /////////////////main///////////////
 void main(int argc, char **argv)
-{
+{    
     Args(argc, argv);
     glutInit(&argc, argv);
+
+    //const char *verstr = (const char *)glGetString(GL_VERSION);
+    //int major = 0, minor = 0;
+    //if ((verstr == NULL) || (sscanf_s(verstr, "%d.%d", &major, &minor) != 2))
+    //{
+    //    //*major = *minor = 0;
+    //    fprintf(stderr, "Invalid GL_VERSION format!!!\n");
+    //}
+
     GLenum type = GLUT_RGBA;
     type |= (doubleBuffer ? GLUT_DOUBLE : GLUT_SINGLE);
     //type |= GLUT_DEPTH;
